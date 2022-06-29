@@ -1,0 +1,22 @@
+{
+  "name": "script-examples",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/port-labs/script-examples.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/port-labs/script-examples/issues"
+  },
+  "homepage": "https://github.com/port-labs/script-examples#readme",
+  "dependencies": {
+    "axios": "^0.27.2"
+  }
+}
