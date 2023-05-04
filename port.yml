@@ -1,0 +1,16 @@
+- identifier: hidePages
+  blueprint: scripts
+  properties:
+    script: file://hidePages.ts
+- identifier: deleteEntities
+  blueprint: scripts
+  properties:
+    script: file://deleteEntities.py
+- identifier: sortPages
+  blueprint: scripts
+  properties:
+    script: file://sortPages.ts
+- identifier: updateRunsStatus
+  blueprint: scripts
+  properties:
+    script: file://updateRunsStatus.ts
