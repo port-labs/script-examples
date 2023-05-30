@@ -4,23 +4,28 @@
   properties:
     script: file://hidePages.ts
     path: hidePages.ts
+    language: typescript
 - identifier: deleteEntities
   blueprint: scripts
   properties:
     script: file://delete_entities.py
     path: delete_entities.py
+    language: Python
 - identifier: applyWebhookToSonarProjects
   blueprint: scripts
   properties:
     script: file://apply_webhook_to_sonar_projects.py
     path: apply_webhook_to_sonar_projects.py
+    language: Python
 - identifier: sortPages
   blueprint: scripts
   properties:
     script: file://sortPages.ts
     path: sortPages.ts
+    language: typescript
 - identifier: updateRunsStatus
   blueprint: scripts
   properties:
     script: file://updateRunsStatus.ts
     path: updateRunsStatus.ts
+    language: typescript
