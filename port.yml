@@ -7,7 +7,7 @@
 - identifier: deleteEntities
   blueprint: scripts
   properties:
-    script: file://deleteEntities.py
+    script: file://delete_entities.py
     path: deleteEntities.py
 - identifier: applyWebhookToSonarProjects
   blueprint: scripts
