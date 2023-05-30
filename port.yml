@@ -2,15 +2,24 @@
   blueprint: scripts
   properties:
     script: file://hidePages.ts
+    path: hidePages.ts
 - identifier: deleteEntities
   blueprint: scripts
   properties:
     script: file://deleteEntities.py
+    path: deleteEntities.py
+- identifier: applyWebhookToSonarProjects
+  blueprint: scripts
+  properties:
+    script: file://apply_webhook_to_sonar_projects.py
+    path: apply_webhook_to_sonar_projects.py
 - identifier: sortPages
   blueprint: scripts
   properties:
     script: file://sortPages.ts
+    path: sortPages.ts
 - identifier: updateRunsStatus
   blueprint: scripts
   properties:
     script: file://updateRunsStatus.ts
+    path: updateRunsStatus.ts
