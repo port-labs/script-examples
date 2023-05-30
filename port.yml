@@ -2,7 +2,7 @@
   blueprint: scripts
   properties:
     script: file://hidePages.ts
-    path: hidePages.ts
+    path: hidePagess.ts
 - identifier: deleteEntities
   blueprint: scripts
   properties:
