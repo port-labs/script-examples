@@ -1,5 +1,5 @@
 - identifier: hidePages
-  title: Hide Pages
+  title: check
   blueprint: scripts
   properties:
     script: file://hidePages.ts
