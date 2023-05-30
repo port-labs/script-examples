@@ -5,10 +5,11 @@
     script: file://hidePages.ts
     path: hidePages.ts
 - identifier: deleteEntities
+  title: Check
   blueprint: scripts
   properties:
     script: file://delete_entities.py
-    path: deleteEntities.py
+    path: delete_entities.py
 - identifier: applyWebhookToSonarProjects
   blueprint: scripts
   properties:
