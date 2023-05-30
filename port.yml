@@ -1,5 +1,6 @@
 # test
 - identifier: hidePages
+  title: Hide Pages
   blueprint: scripts
   properties:
     script: file://hidePages.ts
