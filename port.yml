@@ -5,7 +5,6 @@
     script: file://hidePages.ts
     path: hidePages.ts
 - identifier: deleteEntities
-  title: Check
   blueprint: scripts
   properties:
     script: file://delete_entities.py
