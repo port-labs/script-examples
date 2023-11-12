@@ -32,6 +32,6 @@
 - identifier: migrateBlueprints
   blueprint: scripts
   properties:
-    script: file://migrateBlueprints.md
+    script: file://migrateBlueprints.sh
     path: migrateBlueprints.md
-    language: markdown
+    language: shell

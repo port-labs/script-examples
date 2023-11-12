@@ -3,8 +3,7 @@
 The purpose of this file is to show you how to migrate Blueprints between Port Orgainzations, using a shell script.
 
 
-First, export all of the blueprints using the following script (Make sure to use the API token of the old organization)
-```
+First, export all of the blueprints using the following script (Make sure to use the API token of the old organization
 # Set Bearer value
 export TOKEN="xxxx"
 # Get existing blueprints and save them to blueprints.json
