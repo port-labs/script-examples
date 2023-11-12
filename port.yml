@@ -33,5 +33,5 @@
   blueprint: scripts
   properties:
     script: file://migrateBlueprints.sh
-    path: migrateBlueprints.md
+    path: migrateBlueprints.sh
     language: shell
