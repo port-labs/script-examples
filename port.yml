@@ -29,3 +29,9 @@
     script: file://updateRunsStatus.ts
     path: updateRunsStatus.ts
     language: typescript
+- identifier: migrateBlueprints
+  blueprint: scripts
+  properties:
+    script: file://migrateBlueprints.sh
+    path: migrateBlueprints.sh
+    language: shell
