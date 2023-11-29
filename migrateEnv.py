@@ -34,6 +34,24 @@ def getBlueprints():
     resp = res.json()["blueprints"]
     return resp
 
+def getScorecards():
+    print("Getting scorecards")
+    res = requests.get(f'{API_URL}/scorecards', headers=old_headers)
+    resp = res.json()["scorecards"]
+    return resp
+
+def getActions():
+    print("Getting actions")
+    res = requests.get(f'{API_URL}/actions', headers=old_headers)
+    resp = res.json()["actions"]
+    return resp
+
+def getTeams():
+    print("Getting teams")
+    res = requests.get(f'{API_URL}/teams', headers=old_headers)
+    resp = res.json()["teams"]
+    return resp
+
 def postBlueprints(blueprints):
     print("Posting blueprints")
     blueprintsWithoutRelation = copy.deepcopy(blueprints)
@@ -63,10 +81,42 @@ def postEntities(blueprints):
             if res.status_code != 200:
                 print("error posting entity:" + res.json())
 
+def postScorecards(scorecards):
+    print("Posting scorecards")
+    for scorecard in scorecards:
+        print(f"posting scorecard {scorecard['identifier']}")
+        res = requests.post(f'{API_URL}/blueprints/{scorecard["blueprint"]}/scorecards', headers=new_headers, json=scorecard)
+        if res.status_code != 200:
+            print("error posting scorecard:" + res.json())
+
+
+def postActions(actions):
+    print("Posting actions")
+    for action in actions:
+        res = requests.post(f'{API_URL}/blueprints/{action["blueprint"]}/actions', headers=new_headers, json=action)
+        if res.status_code != 200:
+            print(f"error posting action {action["identifier"]} :" + res.json())
+
+
+def postTeams(teams):
+    print("Posting teams")
+    for team in teams:
+        res = requests.post(f'{API_URL}/teams', headers=new_headers, json=team)
+        if res.status_code != 200:
+            print(f"error posting team {team['identifier']} :" + res.json())
+
+
 def main():
     blueprints = getBlueprints()
     postBlueprints(blueprints)
     postEntities(blueprints)
+    scorecards = getScorecards()
+    postScorecards(scorecards)
+    actions = getActions()
+    postActions(actions)
+    teams = getTeams()
+    postTeams(teams)
+
     
 if __name__ == "__main__":
     main()
