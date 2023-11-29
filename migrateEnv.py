@@ -5,6 +5,8 @@ import copy
 
 API_URL = 'https://api.getport.io/v1'
 
+error = False
+
 #The purpose of this script is to copy data between organization. It will copy both blueprints and entities.
 #Fill in the secrets or set them as environment variables
 
@@ -62,11 +64,13 @@ def postBlueprints(blueprints):
         res = requests.post(f'{API_URL}/blueprints', headers=new_headers, json=bp)
         if res.status_code != 200:
             print("error posting blueprint:" + res.json())
+            error = True
     for blueprint in blueprints:
         print(f"patching blueprint {blueprint['identifier']} with relations")
         res = requests.patch(f'{API_URL}/blueprints/{blueprint["identifier"]}', headers=new_headers, json=blueprint)
         if res.status_code != 200:
             print("error patching blueprint:" + res.json())
+            error = True
 
 def postEntities(blueprints):
     for blueprint in blueprints:
@@ -80,6 +84,7 @@ def postEntities(blueprints):
             res = requests.post(f'{API_URL}/blueprints/{blueprint["identifier"]}/entities?upsert=true&validation_only=false&create_missing_related_entities=true&merge=false', headers=new_headers, json=entity)
             if res.status_code != 200:
                 print("error posting entity:" + res.json())
+                error = True
 
 def postScorecards(scorecards):
     print("Posting scorecards")
@@ -88,6 +93,7 @@ def postScorecards(scorecards):
         res = requests.post(f'{API_URL}/blueprints/{scorecard["blueprint"]}/scorecards', headers=new_headers, json=scorecard)
         if res.status_code != 200:
             print("error posting scorecard:" + res.json())
+            error = True
 
 
 def postActions(actions):
@@ -96,6 +102,7 @@ def postActions(actions):
         res = requests.post(f'{API_URL}/blueprints/{action["blueprint"]}/actions', headers=new_headers, json=action)
         if res.status_code != 200:
             print(f"error posting action {action["identifier"]} :" + res.json())
+            error = True
 
 
 def postTeams(teams):
@@ -104,6 +111,7 @@ def postTeams(teams):
         res = requests.post(f'{API_URL}/teams', headers=new_headers, json=team)
         if res.status_code != 200:
             print(f"error posting team {team['identifier']} :" + res.json())
+            error = True
 
 
 def main():
@@ -116,7 +124,10 @@ def main():
     postActions(actions)
     teams = getTeams()
     postTeams(teams)
-
+    if error:
+        print("Errors occured during migration, please check logs")
+    else:
+        print("No errors were caught during migration")
     
 if __name__ == "__main__":
     main()
