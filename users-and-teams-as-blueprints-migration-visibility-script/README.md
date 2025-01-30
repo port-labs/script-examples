@@ -41,6 +41,14 @@ The script analyzes:
 }
 ```
 
+## Running the Script
+
+Run the script with the following command:
+
+```bash
+npm start
+```
+
 ## Output
 
 The script generates an HTML report that includes:
