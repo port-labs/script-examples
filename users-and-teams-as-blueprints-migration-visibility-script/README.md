@@ -30,8 +30,9 @@ The script analyzes:
 ## Installation
 
 1. Clone/Download this repository
-2. Run `npm install` to install the dependencies
-3. Create a `config.json` file in the root of the repository with the following structure:
+2. Run `cd users-and-teams-as-blueprints-migration-visibility-script`
+3. Run `npm install` to install the dependencies
+4. Create a `config.json` file in the root of the repository with the following structure:
 
 ```json
 {
