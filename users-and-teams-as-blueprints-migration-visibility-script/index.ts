@@ -12,7 +12,7 @@ import {
 	findBlueprintsWithTeamCalculations,
 } from './src/utils/blueprintUtils';
 import { findIntegrationsWithTeamReference } from './src/utils/integrationsUtils';
-import { findPagesWithTeamPermissions, findPagesWithTeamRelations } from './src/utils/pagesUtils';
+import { findPagesWithTeamPermissions, findPagesWithTeamReferences } from './src/utils/pagesUtils';
 import {
 	countEntitiesWithTeamValues,
 	getAllActions,
@@ -134,10 +134,9 @@ const start = async () => {
 
 				const orgPages = await getAllPages(orgPortClient);
 				const orgPagesPermissions = await getAllPagesPermissions(orgPortClient, orgPages);
-				const pagesToReview = findPagesWithTeamRelations(
+				const pagesToReview = findPagesWithTeamReferences(
 					orgPages,
-					orgBlueprintsWithTeamInheritance.map((bp) => bp.identifier),
-					teamRelations,
+					orgBlueprintsWithTeamInheritanceToTeamBlueprint.map((b) => b.relationIdentifier),
 				);
 				const pagePermissionsToReview = findPagesWithTeamPermissions(orgPagesPermissions);
 				console.log('Found pages to review:', colors.cyan(pagesToReview.length.toString()));

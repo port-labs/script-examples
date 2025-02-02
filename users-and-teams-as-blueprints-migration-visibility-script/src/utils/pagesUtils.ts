@@ -1,4 +1,4 @@
-import { PagePermissionsWithPage, PageWithLocation, TeamRelationReference } from '../types';
+import { PagePermissionsWithPage, PageWithLocation } from '../types';
 
 const TABLE_WIDGET_TYPES = {
 	TABLE_ENTITIES_EXPLORER: 'table-entities-explorer',
@@ -46,130 +46,91 @@ type QueryBuilderConfig = {
 	relatedProperty?: string;
 };
 
-type BlueprintConfig = {
-	[BlueprintName: string]: QueryBuilderConfig;
-};
-
-const findTeamRelationsInBlueprintConfig = (
-	blueprintConfig: BlueprintConfig,
-	teamRelations: TeamRelationReference[],
-	blueprintIdentifier: string,
-): string[] => {
+const findTeamReferencesInBlueprintConfig = (config: QueryBuilderConfig, teamRelationIdentifiers: string[]): string[] => {
 	const references: string[] = [];
 
-	// Check properties order and shown arrays
-	for (const [configKey, config] of Object.entries(blueprintConfig)) {
-		if (config.propertiesSettings) {
-			const { order = [], shown = [] } = config.propertiesSettings;
-			for (const relation of teamRelations) {
-				if (order.includes(relation.relationIdentifier) || shown.includes(relation.relationIdentifier)) {
-					references.push(
-						`Found reference to team relation '${relation.relationIdentifier}' in properties settings for blueprint '${blueprintIdentifier}'`,
-					);
-				}
-			}
-		}
+	// Check propertiesSettings
+	if (config.propertiesSettings) {
+		const { shown, hidden, order } = config.propertiesSettings;
 
-		// Check group by settings
-		if (config.groupSettings?.groupBy) {
-			for (const groupField of config.groupSettings.groupBy) {
-				for (const relation of teamRelations) {
-					if (groupField === relation.relationIdentifier) {
-						references.push(
-							`Found reference to team relation '${relation.relationIdentifier}' in group settings for blueprint '${blueprintIdentifier}'`,
-						);
-					}
-				}
+		// Check for team relation identifiers
+		teamRelationIdentifiers.forEach((identifier) => {
+			if (shown?.includes(identifier)) {
+				references.push(`${identifier} in shown properties`);
 			}
-		}
+			if (hidden?.includes(identifier)) {
+				references.push(`${identifier} in hidden properties`);
+			}
+			if (order?.includes(identifier)) {
+				references.push(`${identifier} in properties order`);
+			}
+		});
+	}
 
-		// Check sort settings
-		if (config.sortSettings?.sortBy) {
-			for (const sort of config.sortSettings.sortBy) {
-				for (const relation of teamRelations) {
-					if (sort.property === relation.relationIdentifier) {
-						references.push(
-							`Found reference to team relation '${relation.relationIdentifier}' in sort settings for blueprint '${blueprintIdentifier}'`,
-						);
-					}
-				}
+	// Check groupSettings
+	if (config.groupSettings?.groupBy) {
+		teamRelationIdentifiers.forEach((identifier) => {
+			if (config.groupSettings?.groupBy.includes(identifier)) {
+				references.push(`${identifier} in group by`);
 			}
-		}
+		});
+	}
 
-		// Check filter settings
-		if (config.filterSettings?.filterBy?.rules) {
-			for (const rule of config.filterSettings.filterBy.rules) {
-				for (const relation of teamRelations) {
-					if (rule.property === relation.relationIdentifier) {
-						references.push(
-							`Found reference to team relation '${relation.relationIdentifier}' in filter settings for blueprint '${blueprintIdentifier}'`,
-						);
-					}
+	// Check sortSettings
+	if (config.sortSettings?.sortBy) {
+		config.sortSettings.sortBy.forEach((sort) => {
+			teamRelationIdentifiers.forEach((identifier) => {
+				if (sort.property === identifier || sort.property.startsWith(`${identifier}.`)) {
+					references.push(`${identifier} in sort settings`);
 				}
-			}
-		}
+			});
+		});
+	}
+
+	// Check filterSettings
+	if (config.filterSettings?.filterBy?.rules) {
+		config.filterSettings.filterBy.rules.forEach((rule) => {
+			teamRelationIdentifiers.forEach((identifier) => {
+				if (rule.property === identifier || rule.property.startsWith(`${identifier}.`)) {
+					references.push(`${identifier} in filter rules`);
+				}
+			});
+		});
 	}
 
 	return references;
 };
 
-const isDashboardWidget = (widget: any): boolean => {
-	return widget.type === TABLE_WIDGET_TYPES.DASHBOARD_WIDGET;
-};
-
-const isTableWidget = (widget: any): boolean => {
-	return (
-		widget.type === TABLE_WIDGET_TYPES.TABLE_ENTITIES_EXPLORER ||
-		widget.type === TABLE_WIDGET_TYPES.TABLE_ENTITIES_EXPLORER_BY_DIRECTION
-	);
-};
-
-const findTeamRelationsInWidget = (
+const findTeamReferencesInWidget = (
 	widget: any,
-	blueprintIdentifier: string,
+	teamRelationIdentifiers: string[],
 ): { references: string[]; widgetTitle?: string } => {
 	const references: string[] = [];
 
 	// Check excludedFields
 	if (Array.isArray(widget.excludedFields)) {
-		const hasTeamField = widget.excludedFields.some((field: string) => field === 'teams' || field.startsWith('teams.'));
+		const hasTeamField = widget.excludedFields.some((field: string) =>
+			teamRelationIdentifiers.some(
+				(identifier) => field === `relations.${identifier}` || field.startsWith(`relations.${identifier}.`),
+			),
+		);
 		if (hasTeamField) {
-			references.push(`Found reference to 'teams' in excludedFields`);
+			references.push('Team field in excludedFields');
 		}
 	}
 
 	// Check blueprintConfig
 	if (widget.blueprintConfig && typeof widget.blueprintConfig === 'object') {
 		Object.entries(widget.blueprintConfig).forEach(([bpId, config]: [string, any]) => {
-			if (config.propertiesSettings?.shown?.includes('teams')) {
-				references.push(`Found reference to 'teams' in shown properties`);
-			}
-			if (config.propertiesSettings?.order?.includes('teams')) {
-				references.push(`Found reference to 'teams' in properties order`);
-			}
-			if (config.sortSettings?.sortBy) {
-				const hasTeamSort = config.sortSettings.sortBy.some(
-					(sort: any) => sort.property === 'teams' || sort.property.startsWith('teams.'),
-				);
-				if (hasTeamSort) {
-					references.push(`Found reference to 'teams' in sort settings`);
-				}
-			}
-			if (config.filterSettings?.filterBy?.rules) {
-				const hasTeamFilter = config.filterSettings.filterBy.rules.some(
-					(rule: any) => rule.property === 'teams' || rule.property.startsWith('teams.'),
-				);
-				if (hasTeamFilter) {
-					references.push(`Found reference to 'teams' in filter rules`);
-				}
-			}
+			const configReferences = findTeamReferencesInBlueprintConfig(config, teamRelationIdentifiers);
+			references.push(...configReferences);
 		});
 	}
 
-	// Check for nested widgets
-	if (Array.isArray(widget.widgets)) {
+	// Check for nested widgets (for dashboard widgets)
+	if (widget.type === TABLE_WIDGET_TYPES.DASHBOARD_WIDGET && Array.isArray(widget.widgets)) {
 		widget.widgets.forEach((nestedWidget: any) => {
-			const nestedResult = findTeamRelationsInWidget(nestedWidget, blueprintIdentifier);
+			const nestedResult = findTeamReferencesInWidget(nestedWidget, teamRelationIdentifiers);
 			if (nestedResult.references.length > 0) {
 				references.push(...nestedResult.references);
 			}
@@ -182,33 +143,30 @@ const findTeamRelationsInWidget = (
 	};
 };
 
-export const findPagesWithTeamRelations = (
-	pages: any[],
-	teamInheritanceBlueprints: string[],
-	teamRelations: TeamRelationReference[],
-): PageWithLocation[] => {
-	const pagesToReview: PageWithLocation[] = [];
+export const findPagesWithTeamReferences = (pages: any[], teamRelationIdentifiers: string[]): PageWithLocation[] => {
+	const pagesWithTeamReferences: PageWithLocation[] = [];
 
 	for (const page of pages) {
-		for (const widget of page.widgets) {
-			// For each blueprint that has team inheritance, check if the widget references it
-			for (const blueprintIdentifier of teamInheritanceBlueprints) {
-				const { references, widgetTitle } = findTeamRelationsInWidget(widget, blueprintIdentifier);
+		if (!page.widgets) {
+			continue;
+		}
 
-				if (references.length > 0) {
-					pagesToReview.push({
-						page,
-						widgetId: widget.id,
-						widgetTitle: widgetTitle || widget.title,
-						blueprintIdentifier,
-						relationReferences: references,
-					});
-				}
+		for (const widget of page.widgets) {
+			const { references, widgetTitle } = findTeamReferencesInWidget(widget, teamRelationIdentifiers);
+			if (references.length > 0) {
+				pagesWithTeamReferences.push({
+					page,
+					widgetId: widget.id,
+					widgetTitle,
+					blueprintIdentifier: Object.keys(widget.blueprintConfig || {})[0] || '',
+					relationReferences: references,
+				});
+				break; // Found a reference in this page, no need to check other widgets
 			}
 		}
 	}
 
-	return pagesToReview;
+	return pagesWithTeamReferences;
 };
 
 export const findPagesWithTeamPermissions = (pagePermissions: PagePermissionsWithPage[]): PagePermissionsWithPage[] => {
