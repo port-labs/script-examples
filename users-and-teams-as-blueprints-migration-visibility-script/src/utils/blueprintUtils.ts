@@ -59,6 +59,53 @@ const findTeamsInPermissions = (obj: any, path: string[] = []): string[] => {
 	return foundPaths;
 };
 
+export const findBlueprintsWithTeamCalculations = (
+	blueprints: any[],
+	teamRelations: TeamRelationReference[],
+): { blueprint: any; reviewReason: string }[] => {
+	return blueprints
+		.filter((blueprint) => {
+			if (!blueprint.calculationProperties) return false;
+			const calculationProperties = blueprint.calculationProperties as Record<string, any>;
+
+			for (const [propName, calcProp] of Object.entries(calculationProperties)) {
+				// Check for .team meta property
+				const teamPattern = /\.team\b/;
+				if (teamPattern.test(calcProp.calculation)) {
+					return true;
+				}
+				// Check for old team relation identifiers
+				for (const relation of teamRelations) {
+					if (calcProp.calculation.includes(`.relations.${relation.relationIdentifier}`)) {
+						return true;
+					}
+				}
+			}
+			return false;
+		})
+		.map((blueprint) => {
+			const reasons: string[] = [];
+			const calculationProperties = blueprint.calculationProperties as Record<string, any>;
+			for (const [propName, calcProp] of Object.entries(calculationProperties)) {
+				const teamPattern = /\.team\b/;
+				if (teamPattern.test(calcProp.calculation)) {
+					reasons.push(`Found reference to team meta property in calculation property '${propName}'`);
+				}
+				for (const relation of teamRelations) {
+					if (calcProp.calculation.includes(`.relations.${relation.relationIdentifier}`)) {
+						reasons.push(
+							`Found reference to old team relation identifier (.relations.${relation.relationIdentifier}) in calculation property '${propName}'`,
+						);
+					}
+				}
+			}
+			return {
+				blueprint,
+				reviewReason: reasons.join('\n'),
+			};
+		});
+};
+
 export const findBlueprintPermissionsWithTeamsValues = (
 	blueprintPermissions: BlueprintPermissionsWithBlueprint[],
 ): BlueprintPermissionsWithBlueprint[] => {
@@ -71,7 +118,7 @@ export const findBlueprintPermissionsWithTeamsValues = (
 			const teamPaths = findTeamsInPermissions(bp.permissions);
 			return {
 				...bp,
-				reviewReason: `Found teams in permissions: ${teamPaths.map((path) => path || 'root').join(', ')}`,
+				reviewReason: `Explicit teams in permissions: ${teamPaths.map((path) => path || 'root').join(', ')}`,
 			};
 		});
 };

@@ -14,7 +14,7 @@ import {
 } from '../types';
 
 interface IBlueprintReport {
-	directTeamInheritance: any[];
+	directTeamInheritance: { blueprint: any; relationIdentifier: string }[];
 	indirectTeamInheritance: any[];
 	teamValues: BlueprintWithCount[];
 	actionsToReview: ActionWithJQLocation[];
@@ -24,6 +24,7 @@ interface IBlueprintReport {
 	pagesToReview: PageWithLocation[];
 	pagePermissionsToReview: PagePermissionsWithPage[];
 	blueprintPermissionsToReview: BlueprintPermissionsWithBlueprint[];
+	blueprintsToReview: { blueprint: any; reviewReason: string }[];
 }
 
 const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) => {
@@ -240,7 +241,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                 </svg>
             </div>
         </h1>
-        
+
         <div class="section">
             <div class="section-header">
                 <h2>Resources that will be migrated automatically</h2>
@@ -262,53 +263,51 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                             <tr>
                                 <th>Blueprint Identifier</th>
                                 <th>Blueprint Title</th>
-                                <th>Migration Reason</th>
+                                <th>Migration Type</th>
                                 <th>Reviewed</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${[
-															...blueprintReport.directTeamInheritance.map((bp) => ({
-																...bp,
-																reason: 'Direct team inheritance (inherits from team blueprint)',
-															})),
-															...blueprintReport.indirectTeamInheritance.map((bp) => ({
-																...bp,
-																reason: 'Indirect team inheritance (inherits from another blueprint)',
-															})),
-															...blueprintReport.teamValues.map((bp) => ({
-																...bp.blueprint,
-																reason: 'Has entities with team values',
-															})),
-														]
-															.map(
-																(bp) => `
-                                <tr>
-                                    <td>${bp.identifier}</td>
-                                    <td>${bp.title || '-'}</td>
-                                    <td>${bp.reason}</td>
-                                    <td><input type="checkbox"></td>
-                                </tr>
-                            `,
-															)
-															.join('')}
+                            ${
+															blueprintReport.directTeamInheritance.length ||
+															blueprintReport.indirectTeamInheritance.length ||
+															blueprintReport.teamValues.length
+																? [
+																		...blueprintReport.directTeamInheritance.map(
+																			(blueprintWithRelation) => `
+                                                <tr>
+                                                    <td>${blueprintWithRelation.blueprint.identifier}</td>
+                                                    <td>${blueprintWithRelation.blueprint.title || '-'}</td>
+                                                    <td>Direct team inheritance - direct ownership will be added, the relation identifier '${blueprintWithRelation.relationIdentifier}' will be changed</td>
+                                                    <td><input type="checkbox"></td>
+                                                </tr>
+                                            `,
+																		),
+																		...blueprintReport.indirectTeamInheritance.map(
+																			(blueprint) => `
+                                                <tr>
+                                                    <td>${blueprint.identifier}</td>
+                                                    <td>${blueprint.title || '-'}</td>
+                                                    <td>Indirect team inheritance - inherited ownership will be added with the same path</td>
+                                                    <td><input type="checkbox"></td>
+                                                </tr>
+                                            `,
+																		),
+																		...blueprintReport.teamValues.map(
+																			(blueprintWithCount) => `
+                                                <tr>
+                                                    <td>${blueprintWithCount.blueprint.identifier}</td>
+                                                    <td>${blueprintWithCount.blueprint.title || '-'}</td>
+                                                    <td>Team values - direct ownership will be added, ${blueprintWithCount.entityCount} entities will be updated</td>
+                                                    <td><input type="checkbox"></td>
+                                                </tr>
+                                            `,
+																		),
+																	].join('')
+																: '<tr><td colspan="4" class="empty-state">No blueprints to migrate</td></tr>'
+														}
                         </tbody>
                     </table>
-                </div>
-
-                <div class="summary">
-                    <div class="stat-box">
-                        <div class="stat-number">${blueprintReport.directTeamInheritance.length}</div>
-                        <div class="stat-label">Direct Team Inheritance</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-number">${blueprintReport.indirectTeamInheritance.length}</div>
-                        <div class="stat-label">Indirect Team Inheritance</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-number">${blueprintReport.teamValues.length}</div>
-                        <div class="stat-label">Team Values</div>
-                    </div>
                 </div>
             </div>
 
@@ -404,24 +403,24 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                         </thead>
                         <tbody>
                             ${
-															blueprintReport.actionsPermissionsToReview.filter(
-																(ap) => !ap.reviewReason?.includes('relation'),
+															blueprintReport.actionsPermissionsToReview.filter((ap) =>
+																ap.reviewReason?.includes('relation'),
 															).length
 																? blueprintReport.actionsPermissionsToReview
-																		.filter((ap) => !ap.reviewReason?.includes('relation'))
+																		.filter((ap) => ap.reviewReason?.includes('relation'))
 																		.map(
 																			(actionPermission) => `
-                                <tr>
-                                    <td>${actionPermission.action.identifier}</td>
-                                    <td>${actionPermission.action.title || '-'}</td>
-                                    <td>${actionPermission.action.trigger.type}</td>
-                                    <td>${actionPermission.reviewReason || '-'}</td>
-                                    <td><input type="checkbox"></td>
-                                </tr>
-                            `,
+                                    <tr>
+                                        <td>${actionPermission.action.identifier}</td>
+                                        <td>${actionPermission.action.title || '-'}</td>
+                                        <td>${actionPermission.action.trigger.type}</td>
+                                        <td>${actionPermission.reviewReason || '-'}</td>
+                                        <td><input type="checkbox"></td>
+                                    </tr>
+                                `,
 																		)
 																		.join('')
-																: '<tr><td colspan="5" class="empty-state">No action permissions to migrate</td></tr>'
+																: '<tr><td colspan="5" class="empty-state">No action permissions to review</td></tr>'
 														}
                         </tbody>
                     </table>
@@ -438,6 +437,43 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                 These resources will not be modified by the migration process, but they may be impacted due to their dependencies on team-related configurations.<br/><br/>
                 We recommend reviewing these resources before running the migration and updating them manually after the migration is complete to ensure they continue functioning as expected.
             </p>
+
+            <div class="section">
+                <div class="section-header">
+                    <h3>Blueprints</h3>
+                    <a href="#" class="docs-link">see more in the docs</a>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Blueprint Identifier</th>
+                                <th>Blueprint Title</th>
+                                <th>Review Reason</th>
+                                <th>Reviewed</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${
+															blueprintReport.blueprintsToReview.length
+																? blueprintReport.blueprintsToReview
+																		.map(
+																			(blueprintToReview) => `
+                                    <tr>
+                                        <td>${blueprintToReview.blueprint.identifier}</td>
+                                        <td>${blueprintToReview.blueprint.title || '-'}</td>
+                                        <td>${blueprintToReview.reviewReason || '-'}</td>
+                                        <td><input type="checkbox"></td>
+                                    </tr>
+                                `,
+																		)
+																		.join('')
+																: '<tr><td colspan="4" class="empty-state">No blueprints to review</td></tr>'
+														}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
             <div class="section">
                 <div class="section-header">
@@ -472,48 +508,6 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
 																		)
 																		.join('')
 																: '<tr><td colspan="5" class="empty-state">No actions to review</td></tr>'
-														}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h3>Action Permissions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Action Identifier</th>
-                                <th>Action Title</th>
-                                <th>Action Type</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
-															blueprintReport.actionsPermissionsToReview.filter((ap) =>
-																ap.reviewReason?.includes('relation'),
-															).length
-																? blueprintReport.actionsPermissionsToReview
-																		.filter((ap) => ap.reviewReason?.includes('relation'))
-																		.map(
-																			(actionPermission) => `
-                                    <tr>
-                                        <td>${actionPermission.action.identifier}</td>
-                                        <td>${actionPermission.action.title || '-'}</td>
-                                        <td>${actionPermission.action.trigger.type}</td>
-                                        <td>${actionPermission.reviewReason || '-'}</td>
-                                        <td><input type="checkbox"></td>
-                                    </tr>
-                                `,
-																		)
-																		.join('')
-																: '<tr><td colspan="5" class="empty-state">No action permissions to review</td></tr>'
 														}
                         </tbody>
                     </table>
@@ -643,14 +637,14 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
 </body>
 </html>`;
 
-	const outputDir = path.join(__dirname, '..', 'output', org.id);
+	const outputDir = path.join(__dirname, '..', 'output');
 	fs.mkdirSync(outputDir, { recursive: true });
 	fs.writeFileSync(path.join(outputDir, 'index.html'), html);
 };
 
 export const generateReport = (
 	org: ScriptOrg,
-	directTeamInheritance: any[],
+	directTeamInheritance: { blueprint: any; relationIdentifier: string }[],
 	indirectTeamInheritance: any[],
 	teamValues: BlueprintWithCount[],
 	actionsToReview: ActionWithJQLocation[],
@@ -660,6 +654,7 @@ export const generateReport = (
 	pagesToReview: PageWithLocation[],
 	pagePermissionsToReview: PagePermissionsWithPage[],
 	blueprintPermissionsToReview: BlueprintPermissionsWithBlueprint[],
+	blueprintsToReview: { blueprint: any; reviewReason: string }[],
 ) => {
 	const blueprintReport: IBlueprintReport = {
 		directTeamInheritance,
@@ -672,6 +667,7 @@ export const generateReport = (
 		pagesToReview,
 		pagePermissionsToReview,
 		blueprintPermissionsToReview,
+		blueprintsToReview,
 	};
 
 	generateHtmlReport(org, blueprintReport);
