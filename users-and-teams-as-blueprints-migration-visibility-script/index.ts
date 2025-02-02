@@ -9,6 +9,7 @@ import {
 	findBlueprintPermissionsWithTeamsValues,
 	findTeamRelations,
 	getTargetBlueprintByPath,
+	findBlueprintsWithTeamCalculations,
 } from './src/utils/blueprintUtils';
 import { findIntegrationsWithTeamReference } from './src/utils/integrationsUtils';
 import { findPagesWithTeamPermissions, findPagesWithTeamRelations } from './src/utils/pagesUtils';
@@ -73,7 +74,7 @@ const start = async () => {
 				const teamBlueprint = orgBlueprints.find((bp) => bp.identifier === TEAM_BLUEPRINT_IDENTIFIER);
 				const orgBlueprintsWithTeamInheritance: any[] = [];
 				const orgBlueprintsWithTeamValues: BlueprintWithCount[] = [];
-				const orgBlueprintsWithTeamInheritanceToTeamBlueprint: any[] = [];
+				const orgBlueprintsWithTeamInheritanceToTeamBlueprint: { blueprint: any; relationIdentifier: string }[] = [];
 
 				for (const blueprint of orgBlueprints) {
 					if (blueprint.identifier === TEAM_BLUEPRINT_IDENTIFIER) {
@@ -86,7 +87,8 @@ const start = async () => {
 							blueprint.teamInheritance.path.split('.'),
 						);
 						if (targetBlueprint?.identifier === teamBlueprint?.identifier) {
-							orgBlueprintsWithTeamInheritanceToTeamBlueprint.push(blueprint);
+							const relationIdentifier = blueprint.teamInheritance.path.split('.')[0];
+							orgBlueprintsWithTeamInheritanceToTeamBlueprint.push({ blueprint, relationIdentifier });
 						} else {
 							orgBlueprintsWithTeamInheritance.push(blueprint);
 						}
@@ -101,7 +103,7 @@ const start = async () => {
 					}
 				}
 
-				const teamRelations = findTeamRelations(orgBlueprintsWithTeamInheritanceToTeamBlueprint);
+				const teamRelations = findTeamRelations(orgBlueprintsWithTeamInheritanceToTeamBlueprint.map((b) => b.blueprint));
 
 				console.log('Total org blueprints:', colors.cyan(orgBlueprints.length.toString()));
 				console.log(
@@ -110,6 +112,8 @@ const start = async () => {
 				);
 				console.log('Org Blueprints with team inheritance:', colors.cyan(orgBlueprintsWithTeamInheritance.length.toString()));
 				console.log('Org Blueprints with team values:', colors.cyan(orgBlueprintsWithTeamValues.length.toString()));
+				const blueprintsToReview = findBlueprintsWithTeamCalculations(orgBlueprints, teamRelations);
+				console.log('Found blueprints to review:', colors.cyan(blueprintsToReview.length.toString()));
 				console.log('Found team relations:', colors.cyan(teamRelations.length.toString()));
 
 				const orgActions = await getAllActions(orgPortClient);
@@ -156,9 +160,11 @@ const start = async () => {
 					pagesToReview,
 					pagePermissionsToReview,
 					blueprintPermissionsToReview,
+					blueprintsToReview
 				);
 			} catch (error) {
-				console.error('An error occurred:', error);
+				const errorMessage = 'response' in error ? error.response.data : error;
+				console.error('An error occurred:', errorMessage);
 			}
 
 		console.log(colors.green('Done'));

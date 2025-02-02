@@ -18,7 +18,7 @@ const findTeamReferences = (obj: unknown, teamRelations: TeamRelationReference[]
 		for (const relation of teamRelations) {
 			const relationPattern = new RegExp(`\\.relations\\.${relation.relationIdentifier}\\b`);
 			if (relationPattern.test(obj)) {
-				paths.push(`Found reference to old team relation format (.relations.${relation.relationIdentifier})`);
+				paths.push(`Found reference to old team relation identifier (.relations.${relation.relationIdentifier})`);
 			}
 		}
 		return paths;
