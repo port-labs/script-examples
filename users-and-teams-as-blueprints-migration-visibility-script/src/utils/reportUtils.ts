@@ -246,7 +246,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
         <div class="section">
             <div class="section-header">
                 <h2>Resources that will be migrated automatically</h2>
-                <a href="#" class="docs-link">see more in the docs</a>
+                <a href="https://docs.port.io/sso-rbac/rbac/migration/#resources-that-will-be-migrated-automatically" class="docs-link">see more in the docs</a>
             </div>
             <p class="section-description">
                 These resources will be migrated automatically when the migration script is executed.<br/><br/>
@@ -256,7 +256,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Blueprints</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#blueprints" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -315,7 +315,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Blueprint Permissions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#blueprint-permissions" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -352,7 +352,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Page Permissions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#page-permissions" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -389,7 +389,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Action Permissions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#action-permissions" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -429,7 +429,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
         <div class="section">
             <div class="section-header">
                 <h2>Resources that will need to be reviewed manually</h2>
-                <a href="#" class="docs-link">see more in the docs</a>
+                <a href="https://docs.port.io/sso-rbac/rbac/migration/#resources-that-will-need-to-be-reviewed-manually" class="docs-link">see more in the docs</a>
             </div>
             <p class="section-description">
                 These resources will not be modified by the migration process, but they may be impacted due to their dependencies on team-related configurations.<br/><br/>
@@ -439,7 +439,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Blueprints</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#blueprints-1" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -476,7 +476,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Actions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#actions" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -515,7 +515,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Action Permissions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#action-permissions-1" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -554,7 +554,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Integrations</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#integrations" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -593,7 +593,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Webhooks</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#webhooks" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
@@ -632,7 +632,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             <div class="section">
                 <div class="section-header">
                     <h3>Pages</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                    <a href="https://docs.port.io/sso-rbac/rbac/migration/#pages" class="docs-link">see more in the docs</a>
                 </div>
                 <div class="table-container">
                     <table>
