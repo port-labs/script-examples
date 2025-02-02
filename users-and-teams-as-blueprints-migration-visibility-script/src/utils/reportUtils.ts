@@ -637,7 +637,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
 </body>
 </html>`;
 
-	const outputDir = path.join(__dirname, '..', 'output');
+	const outputDir = path.join(__dirname, '..', '..', 'output');
 	fs.mkdirSync(outputDir, { recursive: true });
 	fs.writeFileSync(path.join(outputDir, 'index.html'), html);
 };
