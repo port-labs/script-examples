@@ -4,7 +4,11 @@ import process from 'process';
 import colors from 'colors/safe';
 
 import { BlueprintWithCount, Config } from './src/types';
-import { findActionsPermissionsWithTeamsValues, findActionsWithTeamQuery } from './src/utils/actionsUtils';
+import {
+	findActionsPermissionsWithDynamicTeamFilters,
+	findActionsPermissionsWithExplicitTeams,
+	findActionsWithTeamQuery,
+} from './src/utils/actionsUtils';
 import {
 	findBlueprintPermissionsWithTeamsValues,
 	findTeamRelations,
@@ -120,8 +124,10 @@ const start = async () => {
 				const orgActions = await getAllActions(orgPortClient);
 				const actionsToReview = findActionsWithTeamQuery(orgActions, teamRelations);
 				const orgActionsPermissions = await getAllActionsPermissions(orgPortClient, orgActions);
-				const actionsPermissionsToReview = findActionsPermissionsWithTeamsValues(orgActionsPermissions, teamRelations);
+				const actionsPermissionsToMigrate = findActionsPermissionsWithExplicitTeams(orgActionsPermissions);
+				const actionsPermissionsToReview = findActionsPermissionsWithDynamicTeamFilters(orgActionsPermissions, teamRelations);
 				console.log('Found actions to review:', colors.cyan(actionsToReview.length.toString()));
+				console.log('Found actions permissions to migrate:', colors.cyan(actionsPermissionsToMigrate.length.toString()));
 				console.log('Found actions permissions to review:', colors.cyan(actionsPermissionsToReview.length.toString()));
 
 				const orgIntegrations = await getAllIntegrations(orgPortClient);
@@ -154,6 +160,7 @@ const start = async () => {
 					orgBlueprintsWithTeamInheritance,
 					orgBlueprintsWithTeamValues,
 					actionsToReview,
+					actionsPermissionsToMigrate,
 					actionsPermissionsToReview,
 					integrationsToReview,
 					webhooksToReview,

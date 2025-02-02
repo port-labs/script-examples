@@ -18,6 +18,7 @@ interface IBlueprintReport {
 	indirectTeamInheritance: any[];
 	teamValues: BlueprintWithCount[];
 	actionsToReview: ActionWithJQLocation[];
+	actionsPermissionsToMigrate: ActionPermissionsWithAction[];
 	actionsPermissionsToReview: ActionPermissionsWithAction[];
 	integrationsToReview: IntegrationWithLocation[];
 	webhooksToReview: WebhookWithLocation[];
@@ -278,7 +279,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                                                 <tr>
                                                     <td>${blueprintWithRelation.blueprint.identifier}</td>
                                                     <td>${blueprintWithRelation.blueprint.title || '-'}</td>
-                                                    <td>Direct team inheritance - direct ownership will be added, the relation identifier '${blueprintWithRelation.relationIdentifier}' will be changed</td>
+                                                    <td>Direct team inheritance - direct ownership will be added, the '${blueprintWithRelation.relationIdentifier}' will be changed</td>
                                                     <td><input type="checkbox"></td>
                                                 </tr>
                                             `,
@@ -394,33 +395,30 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                     <table>
                         <thead>
                             <tr>
-                                <th>Action Identifier</th>
+                                <th>Action ID</th>
                                 <th>Action Title</th>
-                                <th>Action Type</th>
+                                <th>Blueprint</th>
+                                <th>Trigger</th>
                                 <th>Review Reason</th>
-                                <th>Reviewed</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${
-															blueprintReport.actionsPermissionsToReview.filter((ap) =>
-																ap.reviewReason?.includes('relation'),
-															).length
-																? blueprintReport.actionsPermissionsToReview
-																		.filter((ap) => ap.reviewReason?.includes('relation'))
+															blueprintReport.actionsPermissionsToMigrate.length
+																? blueprintReport.actionsPermissionsToMigrate
 																		.map(
 																			(actionPermission) => `
                                     <tr>
                                         <td>${actionPermission.action.identifier}</td>
                                         <td>${actionPermission.action.title || '-'}</td>
+                                        <td>${actionPermission.action.trigger.blueprintIdentifier || '-'}</td>
                                         <td>${actionPermission.action.trigger.type}</td>
-                                        <td>${actionPermission.reviewReason || '-'}</td>
-                                        <td><input type="checkbox"></td>
+                                        <td>${actionPermission.reviewReason}</td>
                                     </tr>
                                 `,
 																		)
 																		.join('')
-																: '<tr><td colspan="5" class="empty-state">No action permissions to review</td></tr>'
+																: '<tr><td colspan="5" class="empty-state">No action permissions to migrate manually</td></tr>'
 														}
                         </tbody>
                     </table>
@@ -508,6 +506,45 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
 																		)
 																		.join('')
 																: '<tr><td colspan="5" class="empty-state">No actions to review</td></tr>'
+														}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h3>Action Permissions</h3>
+                    <a href="#" class="docs-link">see more in the docs</a>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Action ID</th>
+                                <th>Action Title</th>
+                                <th>Blueprint</th>
+                                <th>Trigger</th>
+                                <th>Review Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${
+															blueprintReport.actionsPermissionsToReview.length
+																? blueprintReport.actionsPermissionsToReview
+																		.map(
+																			(actionPermission) => `
+                                    <tr>
+                                        <td>${actionPermission.action.identifier}</td>
+                                        <td>${actionPermission.action.title || '-'}</td>
+                                        <td>${actionPermission.action.trigger.blueprintIdentifier || '-'}</td>
+                                        <td>${actionPermission.action.trigger.type}</td>
+                                        <td>${actionPermission.reviewReason}</td>
+                                    </tr>
+                                `,
+																		)
+																		.join('')
+																: '<tr><td colspan="5" class="empty-state">No action permissions to review</td></tr>'
 														}
                         </tbody>
                     </table>
@@ -648,6 +685,7 @@ export const generateReport = (
 	indirectTeamInheritance: any[],
 	teamValues: BlueprintWithCount[],
 	actionsToReview: ActionWithJQLocation[],
+	actionsPermissionsToMigrate: ActionPermissionsWithAction[],
 	actionsPermissionsToReview: ActionPermissionsWithAction[],
 	integrationsToReview: IntegrationWithLocation[],
 	webhooksToReview: WebhookWithLocation[],
@@ -661,6 +699,7 @@ export const generateReport = (
 		indirectTeamInheritance,
 		teamValues,
 		actionsToReview,
+		actionsPermissionsToMigrate,
 		actionsPermissionsToReview,
 		integrationsToReview,
 		webhooksToReview,

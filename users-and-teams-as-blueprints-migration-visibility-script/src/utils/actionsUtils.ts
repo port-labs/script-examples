@@ -82,10 +82,9 @@ export const findActionsWithTeamQuery = (
 	}, []);
 };
 
-export const findActionsPermissionsWithTeamsValues = (
+export const findActionsPermissionsWithExplicitTeams = (
 	actionsPermissions: ActionPermissionsWithAction[],
-	teamRelations: TeamRelationReference[],
-) => {
+): ActionPermissionsWithAction[] => {
 	return actionsPermissions.reduce<ActionPermissionsWithAction[]>((acc, actionPermission) => {
 		const { permissions, action } = actionPermission;
 		let reviewReason: ActionPermissionReviewReason | null = null;
@@ -94,7 +93,25 @@ export const findActionsPermissionsWithTeamsValues = (
 			reviewReason = 'Explicit teams in Execute permissions';
 		} else if (permissions.approve?.teams?.length) {
 			reviewReason = 'Explicit teams in Approve permissions';
-		} else if (permissions.execute?.policy) {
+		}
+
+		if (reviewReason) {
+			acc.push({ action, permissions, reviewReason });
+		}
+
+		return acc;
+	}, []);
+};
+
+export const findActionsPermissionsWithDynamicTeamFilters = (
+	actionsPermissions: ActionPermissionsWithAction[],
+	teamRelations: TeamRelationReference[],
+): ActionPermissionsWithAction[] => {
+	return actionsPermissions.reduce<ActionPermissionsWithAction[]>((acc, actionPermission) => {
+		const { permissions, action } = actionPermission;
+		let reviewReason: ActionPermissionReviewReason | null = null;
+
+		if (permissions.execute?.policy) {
 			const references = findTeamReferences(permissions.execute.policy, teamRelations);
 			if (references.length > 0) {
 				reviewReason = references.join('\n');
@@ -112,4 +129,14 @@ export const findActionsPermissionsWithTeamsValues = (
 
 		return acc;
 	}, []);
+};
+
+// Keeping this for backward compatibility if needed
+export const findActionsPermissionsWithTeamsValues = (
+	actionsPermissions: ActionPermissionsWithAction[],
+	teamRelations: TeamRelationReference[],
+): ActionPermissionsWithAction[] => {
+	const withExplicitTeams = findActionsPermissionsWithExplicitTeams(actionsPermissions);
+	const withDynamicFilters = findActionsPermissionsWithDynamicTeamFilters(actionsPermissions, teamRelations);
+	return [...withExplicitTeams, ...withDynamicFilters];
 };
