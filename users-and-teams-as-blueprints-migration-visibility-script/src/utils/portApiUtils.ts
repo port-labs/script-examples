@@ -2,7 +2,8 @@ import PortClient from '../clients/PortClient';
 import { ActionPermissionsWithAction, BlueprintPermissionsWithBlueprint, Env, PagePermissionsWithPage } from '../types';
 
 const portApiUrl: Record<string, string> = {
-	eu: 'https://api.getport.io',
+	// eu: 'https://api.getport.io',
+	eu: 'http://localhost:3000',
 	us: 'https://api.us.getport.io',
 };
 
