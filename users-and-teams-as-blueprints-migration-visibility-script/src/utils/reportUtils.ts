@@ -295,7 +295,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                 <button class="collapsible">
                     <h2>Resources that will need to be reviewed manually</h2>
                 </button>
-                <a href="https://docs.port.io/sso-rbac/rbac/migration/#resources-that-will-need-to-be-reviewed-manually" class="docs-link">see more in the docs</a>
+                <a href="https://docs.port.io/sso-rbac/rbac/migration/#resources-that-will-require-manual-intervention" class="docs-link">see more in the docs</a>
             </div>
             <div class="content">
                 <p class="section-description">
@@ -306,9 +306,9 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                 <div class="section">
                     <div class="section-header">
                         <button class="collapsible">
-                            <h3>Blueprints</h3>
+                            <h3>Calculation Properties</h3>
                         </button>
-                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#blueprints-1" class="docs-link">see more in the docs</a>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#calculation-properties" class="docs-link">see more in the docs</a>
                     </div>
                     <div class="content">
                         <div class="table-container">
@@ -336,7 +336,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                                 `,
 																		)
 																		.join('')
-																: '<tr><td colspan="4" class="empty-state">No blueprints to review</td></tr>'
+																: '<tr><td colspan="4" class="empty-state">No calculation properties to review</td></tr>'
 														}
                                 </tbody>
                             </table>
@@ -379,7 +379,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                                 `,
 																		)
 																		.join('')
-																: '<tr><td colspan="5" class="empty-state">No actions to review</td></tr>'
+																: '<tr><td colspan="5" class="empty-state">No actions & automations to review</td></tr>'
 														}
                                 </tbody>
                             </table>
@@ -392,7 +392,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                         <button class="collapsible">
                             <h3>Action Dynamic Permissions</h3>
                         </button>
-                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#action-permissions" class="docs-link">see more in the docs</a>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#action-dynamic-permissions" class="docs-link">see more in the docs</a>
                     </div>
                     <div class="content">
                         <div class="table-container">
@@ -435,7 +435,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                         <button class="collapsible">
                             <h3>Integrations</h3>
                         </button>
-                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integrations-and-webhooks" class="docs-link">see more in the docs</a>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integration--webhook-mapping" class="docs-link">see more in the docs</a>
                     </div>
                     <div class="content">
                         <div class="table-container">
@@ -478,7 +478,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                         <button class="collapsible">
                             <h3>Webhooks</h3>
                         </button>
-                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integrations-and-webhooks" class="docs-link">see more in the docs</a>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integration--webhook-mapping" class="docs-link">see more in the docs</a>
                     </div>
                     <div class="content">
                         <div class="table-container">

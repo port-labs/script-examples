@@ -35,10 +35,14 @@ const findTeamMappings = (obj: unknown): string[] => {
 
 export const findIntegrationsWithTeamReference = (
 	integrations: any[],
-	teamRelations: TeamRelationReference[],
 ): IntegrationWithLocation[] => {
 	return integrations.reduce<IntegrationWithLocation[]>((acc, integration) => {
 		if (!integration.config) {
+			acc.push({
+				integration,
+				teamReferencePaths: [],
+				reviewReason: 'GitOps file needs to be reviewed',
+			});
 			return acc;
 		}
 

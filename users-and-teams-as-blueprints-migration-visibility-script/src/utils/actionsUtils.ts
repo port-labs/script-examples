@@ -52,34 +52,59 @@ const findTeamReferences = (obj: unknown, teamRelations: TeamRelationReference[]
 	return [...new Set(paths)];
 };
 
-export const findActionsWithTeamQuery = (
-	actions: any[],
-	teamRelations: TeamRelationReference[],
-): ActionWithJQLocation[] => {
-	return actions.reduce<ActionWithJQLocation[]>((acc, action) => {
+export const findActionsWithTeamQuery = (actions: any[], teamRelations: TeamRelationReference[]): ActionWithJQLocation[] => {
+	const actionsToReview: ActionWithJQLocation[] = [];
+
+	for (const action of actions) {
+		const jqQueryPaths: string[] = [];
+
+		// Check mapping section for team property assignments
+		if (action.invocationMethod?.body?.mapping?.entity) {
+			const entityMapping = action.invocationMethod.body.mapping.entity;
+			
+			// Check direct team property
+			if ('team' in entityMapping) {
+				jqQueryPaths.push('Action maps value to team property in entity mapping');
+			}
+
+			// Check relations section for team relation identifiers
+			if (entityMapping.relations) {
+				for (const teamRelation of teamRelations) {
+					if (teamRelation.relationIdentifier in entityMapping.relations) {
+						jqQueryPaths.push(`Action maps value to "${teamRelation.relationIdentifier}" relation in entity mapping`);
+					}
+				}
+			}
+		}
+
 		const paths = findTeamReferences(action, teamRelations);
 		if (paths.length > 0) {
-			acc.push({
+			jqQueryPaths.push(...paths.map((path) => {
+				if (path.includes('trigger.conditions')) {
+					return 'Team reference in trigger conditions';
+				}
+				if (path.includes('action.mapping')) {
+					return 'Team reference in mapping configuration';
+				}
+				if (path.includes('action.url')) {
+					return 'Team reference in webhook URL';
+				}
+				if (path.includes('action.body')) {
+					return 'Team reference in webhook body';
+				}
+				return path;
+			}));
+		}
+
+		if (jqQueryPaths.length > 0) {
+			actionsToReview.push({
 				action,
-				jqQueryPath: paths.map((path) => {
-					if (path.includes('trigger.conditions')) {
-						return 'Team reference in trigger conditions';
-					}
-					if (path.includes('action.mapping')) {
-						return 'Team reference in mapping configuration';
-					}
-					if (path.includes('action.url')) {
-						return 'Team reference in webhook URL';
-					}
-					if (path.includes('action.body')) {
-						return 'Team reference in webhook body';
-					}
-					return path;
-				}),
+				jqQueryPath: jqQueryPaths,
 			});
 		}
-		return acc;
-	}, []);
+	}
+
+	return actionsToReview;
 };
 
 export const findActionsPermissionsWithExplicitTeams = (
