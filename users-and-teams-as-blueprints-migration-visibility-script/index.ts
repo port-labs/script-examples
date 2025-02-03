@@ -4,7 +4,11 @@ import process from 'process';
 import colors from 'colors/safe';
 
 import { BlueprintWithCount, Config } from './src/types';
-import { findActionsPermissionsWithTeamsValues, findActionsWithTeamQuery } from './src/utils/actionsUtils';
+import {
+	findActionsPermissionsWithDynamicTeamFilters,
+	findActionsPermissionsWithExplicitTeams,
+	findActionsWithTeamQuery,
+} from './src/utils/actionsUtils';
 import {
 	findBlueprintPermissionsWithTeamsValues,
 	findTeamRelations,
@@ -12,7 +16,7 @@ import {
 	findBlueprintsWithTeamCalculations,
 } from './src/utils/blueprintUtils';
 import { findIntegrationsWithTeamReference } from './src/utils/integrationsUtils';
-import { findPagesWithTeamPermissions, findPagesWithTeamRelations } from './src/utils/pagesUtils';
+import { findPagesWithTeamPermissions, findPagesWithTeamReferences } from './src/utils/pagesUtils';
 import {
 	countEntitiesWithTeamValues,
 	getAllActions,
@@ -64,7 +68,8 @@ const start = async () => {
 	const config = loadConfig();
 	if (config) {
 		const { REGION, CLIENT_ID, CLIENT_SECRET } = config;
-		console.log(colors.green(`Starting migration with client id of - ${CLIENT_ID}`));
+		const redactedClientId = CLIENT_ID.slice(0, 6) + '...' + CLIENT_ID.slice(-4);
+		console.log(colors.green(`Starting migration with client id of - ${redactedClientId}`));
 		try {
 				const orgPortClient = getPortApiClient(REGION, CLIENT_ID, CLIENT_SECRET);
 				const org = await getOrg(orgPortClient);
@@ -119,12 +124,14 @@ const start = async () => {
 				const orgActions = await getAllActions(orgPortClient);
 				const actionsToReview = findActionsWithTeamQuery(orgActions, teamRelations);
 				const orgActionsPermissions = await getAllActionsPermissions(orgPortClient, orgActions);
-				const actionsPermissionsToReview = findActionsPermissionsWithTeamsValues(orgActionsPermissions, teamRelations);
+				const actionsPermissionsToMigrate = findActionsPermissionsWithExplicitTeams(orgActionsPermissions);
+				const actionsPermissionsToReview = findActionsPermissionsWithDynamicTeamFilters(orgActionsPermissions, teamRelations);
 				console.log('Found actions to review:', colors.cyan(actionsToReview.length.toString()));
+				console.log('Found actions permissions to migrate:', colors.cyan(actionsPermissionsToMigrate.length.toString()));
 				console.log('Found actions permissions to review:', colors.cyan(actionsPermissionsToReview.length.toString()));
 
 				const orgIntegrations = await getAllIntegrations(orgPortClient);
-				const integrationsToReview = findIntegrationsWithTeamReference(orgIntegrations, teamRelations);
+				const integrationsToReview = findIntegrationsWithTeamReference(orgIntegrations);
 				console.log('Found integrations to review:', colors.cyan(integrationsToReview.length.toString()));
 
 				const orgWebhooks = await getAllWebhooks(orgPortClient);
@@ -133,10 +140,9 @@ const start = async () => {
 
 				const orgPages = await getAllPages(orgPortClient);
 				const orgPagesPermissions = await getAllPagesPermissions(orgPortClient, orgPages);
-				const pagesToReview = findPagesWithTeamRelations(
+				const pagesToReview = findPagesWithTeamReferences(
 					orgPages,
-					orgBlueprintsWithTeamInheritance.map((bp) => bp.identifier),
-					teamRelations,
+					orgBlueprintsWithTeamInheritanceToTeamBlueprint.map((b) => b.relationIdentifier),
 				);
 				const pagePermissionsToReview = findPagesWithTeamPermissions(orgPagesPermissions);
 				console.log('Found pages to review:', colors.cyan(pagesToReview.length.toString()));
@@ -154,6 +160,7 @@ const start = async () => {
 					orgBlueprintsWithTeamInheritance,
 					orgBlueprintsWithTeamValues,
 					actionsToReview,
+					actionsPermissionsToMigrate,
 					actionsPermissionsToReview,
 					integrationsToReview,
 					webhooksToReview,

@@ -52,7 +52,7 @@ npm start
 
 ## Output
 
-The script generates an HTML report that includes:
+The script generates an HTML report (output/index.html) that includes:
 - Summary statistics
 - Detailed lists of resources that need review
 - Checkboxes to track review progress

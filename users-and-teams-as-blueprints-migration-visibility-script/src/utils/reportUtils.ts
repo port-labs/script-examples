@@ -18,6 +18,7 @@ interface IBlueprintReport {
 	indirectTeamInheritance: any[];
 	teamValues: BlueprintWithCount[];
 	actionsToReview: ActionWithJQLocation[];
+	actionsPermissionsToMigrate: ActionPermissionsWithAction[];
 	actionsPermissionsToReview: ActionPermissionsWithAction[];
 	integrationsToReview: IntegrationWithLocation[];
 	webhooksToReview: WebhookWithLocation[];
@@ -138,15 +139,12 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             color: var(--secondary-color);
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid var(--border-color);
             font-size: 1.8em;
         }
 
         h3 {
             color: var(--secondary-color);
             margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--border-color);
             font-size: 1.4em;
         }
 
@@ -198,21 +196,35 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 20px;
         }
 
-        .section-header h2, .section-header h3 {
+        .section-header button {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            padding: 0;
             margin: 0;
+            font: inherit;
+            color: inherit;
+            cursor: pointer;
+            outline: inherit;
         }
 
         .docs-link {
             font-size: 14px;
             color: var(--primary-color);
             text-decoration: none;
+            white-space: nowrap;
         }
 
         .docs-link:hover {
             text-decoration: underline;
+        }
+
+        h2, h3 {
+            margin: 0;
+            flex-grow: 1;
         }
 
         .section-description {
@@ -220,6 +232,42 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             margin: 20px 0 30px;
             font-size: 1.1em;
             line-height: 1.5;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: none;
+            text-align: left;
+            outline: none;
+            background-color: transparent;
+        }
+
+        .collapsible:before {
+            content: '\\276F';  /* Unicode character for ">" sign */
+            font-size: 16px;
+            color: var(--primary-color);
+            margin-right: 10px;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+
+        .active:before {
+            transform: rotate(90deg);
+        }
+
+        .content {
+            padding-top: 5px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+        }
+
+        /* Main sections should be more prominent */
+        .section > .section-header .collapsible:before {
+            font-size: 20px;
         }
     </style>
 </head>
@@ -244,217 +292,37 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
 
         <div class="section">
             <div class="section-header">
-                <h2>Resources that will be migrated automatically</h2>
-                <a href="#" class="docs-link">see more in the docs</a>
+                <button class="collapsible">
+                    <h2>Resources that will need to be reviewed manually</h2>
+                </button>
+                <a href="https://docs.port.io/sso-rbac/rbac/migration/#resources-that-will-require-manual-intervention" class="docs-link">see more in the docs</a>
             </div>
-            <p class="section-description">
-                These resources will be migrated automatically when the migration script is executed.<br/><br/>
-                However, if you manage any of these resources through Infrastructure as Code (IaC) or GitOps workflows, you will need to update those configurations manually to reflect the changes.
-            </p>
+            <div class="content">
+                <p class="section-description">
+                    These resources will not be modified by the migration process, but they may be impacted due to their dependencies on team-related configurations.<br/>
+                    We recommend reviewing these resources before running the migration and updating them manually after the migration is complete to ensure they continue functioning as expected.
+                </p>
 
-            <div class="section">
-                <div class="section-header">
-                    <h3>Blueprints</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Blueprint Identifier</th>
-                                <th>Blueprint Title</th>
-                                <th>Migration Type</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
-															blueprintReport.directTeamInheritance.length ||
-															blueprintReport.indirectTeamInheritance.length ||
-															blueprintReport.teamValues.length
-																? [
-																		...blueprintReport.directTeamInheritance.map(
-																			(blueprintWithRelation) => `
-                                                <tr>
-                                                    <td>${blueprintWithRelation.blueprint.identifier}</td>
-                                                    <td>${blueprintWithRelation.blueprint.title || '-'}</td>
-                                                    <td>Direct team inheritance - direct ownership will be added, the relation identifier '${blueprintWithRelation.relationIdentifier}' will be changed</td>
-                                                    <td><input type="checkbox"></td>
-                                                </tr>
-                                            `,
-																		),
-																		...blueprintReport.indirectTeamInheritance.map(
-																			(blueprint) => `
-                                                <tr>
-                                                    <td>${blueprint.identifier}</td>
-                                                    <td>${blueprint.title || '-'}</td>
-                                                    <td>Indirect team inheritance - inherited ownership will be added with the same path</td>
-                                                    <td><input type="checkbox"></td>
-                                                </tr>
-                                            `,
-																		),
-																		...blueprintReport.teamValues.map(
-																			(blueprintWithCount) => `
-                                                <tr>
-                                                    <td>${blueprintWithCount.blueprint.identifier}</td>
-                                                    <td>${blueprintWithCount.blueprint.title || '-'}</td>
-                                                    <td>Team values - direct ownership will be added, ${blueprintWithCount.entityCount} entities will be updated</td>
-                                                    <td><input type="checkbox"></td>
-                                                </tr>
-                                            `,
-																		),
-																	].join('')
-																: '<tr><td colspan="4" class="empty-state">No blueprints to migrate</td></tr>'
-														}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h3>Blueprint Permissions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Blueprint Identifier</th>
-                                <th>Blueprint Title</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
-															blueprintReport.blueprintPermissionsToReview.length
-																? blueprintReport.blueprintPermissionsToReview
-																		.map(
-																			(blueprintPermission) => `
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Calculation Properties</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#calculation-properties" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
                                     <tr>
-                                        <td>${blueprintPermission.blueprint.identifier}</td>
-                                        <td>${blueprintPermission.blueprint.title || '-'}</td>
-                                        <td>${blueprintPermission.reviewReason || '-'}</td>
-                                        <td><input type="checkbox"></td>
+                                        <th>Blueprint Identifier</th>
+                                        <th>Blueprint Title</th>
+                                        <th>Review Reason</th>
+                                        <th>Reviewed</th>
                                     </tr>
-                                `,
-																		)
-																		.join('')
-																: '<tr><td colspan="4" class="empty-state">No blueprint permissions to migrate</td></tr>'
-														}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h3>Page Permissions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Page Identifier</th>
-                                <th>Page Title</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
-															blueprintReport.pagePermissionsToReview.length
-																? blueprintReport.pagePermissionsToReview
-																		.map(
-																			(pagePermission) => `
-                                <tr>
-                                    <td>${pagePermission.page.identifier}</td>
-                                    <td>${pagePermission.page.title || '-'}</td>
-                                    <td>${pagePermission.reviewReason || '-'}</td>
-                                    <td><input type="checkbox"></td>
-                                </tr>
-                            `,
-																		)
-																		.join('')
-																: '<tr><td colspan="4" class="empty-state">No page permissions to migrate</td></tr>'
-														}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="section">
-                <div class="section-header">
-                    <h3>Action Permissions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Action Identifier</th>
-                                <th>Action Title</th>
-                                <th>Action Type</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
-															blueprintReport.actionsPermissionsToReview.filter((ap) =>
-																ap.reviewReason?.includes('relation'),
-															).length
-																? blueprintReport.actionsPermissionsToReview
-																		.filter((ap) => ap.reviewReason?.includes('relation'))
-																		.map(
-																			(actionPermission) => `
-                                    <tr>
-                                        <td>${actionPermission.action.identifier}</td>
-                                        <td>${actionPermission.action.title || '-'}</td>
-                                        <td>${actionPermission.action.trigger.type}</td>
-                                        <td>${actionPermission.reviewReason || '-'}</td>
-                                        <td><input type="checkbox"></td>
-                                    </tr>
-                                `,
-																		)
-																		.join('')
-																: '<tr><td colspan="5" class="empty-state">No action permissions to review</td></tr>'
-														}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <div class="section-header">
-                <h2>Resources that will need to be reviewed manually</h2>
-                <a href="#" class="docs-link">see more in the docs</a>
-            </div>
-            <p class="section-description">
-                These resources will not be modified by the migration process, but they may be impacted due to their dependencies on team-related configurations.<br/><br/>
-                We recommend reviewing these resources before running the migration and updating them manually after the migration is complete to ensure they continue functioning as expected.
-            </p>
-
-            <div class="section">
-                <div class="section-header">
-                    <h3>Blueprints</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Blueprint Identifier</th>
-                                <th>Blueprint Title</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
+                                </thead>
+                                <tbody>
+                                    ${
 															blueprintReport.blueprintsToReview.length
 																? blueprintReport.blueprintsToReview
 																		.map(
@@ -468,31 +336,35 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                                 `,
 																		)
 																		.join('')
-																: '<tr><td colspan="4" class="empty-state">No blueprints to review</td></tr>'
+																: '<tr><td colspan="4" class="empty-state">No calculation properties to review</td></tr>'
 														}
-                        </tbody>
-                    </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="section">
-                <div class="section-header">
-                    <h3>Actions</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Action Identifier</th>
-                                <th>Action Title</th>
-                                <th>Action Type</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Actions & Automations</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#actions--automations" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Action Identifier</th>
+                                        <th>Action Title</th>
+                                        <th>Action Type</th>
+                                        <th>Review Reason</th>
+                                        <th>Reviewed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
 															blueprintReport.actionsToReview.length
 																? blueprintReport.actionsToReview
 																		.map(
@@ -507,31 +379,78 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                                 `,
 																		)
 																		.join('')
-																: '<tr><td colspan="5" class="empty-state">No actions to review</td></tr>'
+																: '<tr><td colspan="5" class="empty-state">No actions & automations to review</td></tr>'
 														}
-                        </tbody>
-                    </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="section">
-                <div class="section-header">
-                    <h3>Integrations</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Action Dynamic Permissions</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#action-dynamic-permissions" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Action ID</th>
+                                        <th>Action Title</th>
+                                        <th>Blueprint</th>
+                                        <th>Trigger</th>
+                                        <th>Review Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
+															blueprintReport.actionsPermissionsToReview.length
+																? blueprintReport.actionsPermissionsToReview
+																		.map(
+																			(actionPermission) => `
+                                    <tr>
+                                        <td>${actionPermission.action.identifier}</td>
+                                        <td>${actionPermission.action.title || '-'}</td>
+                                        <td>${actionPermission.action.trigger.blueprintIdentifier || '-'}</td>
+                                        <td>${actionPermission.action.trigger.type}</td>
+                                        <td>${actionPermission.reviewReason}</td>
+                                    </tr>
+                                `,
+																		)
+																		.join('')
+																: '<tr><td colspan="5" class="empty-state">No action permissions to review</td></tr>'
+														}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Integration Identifier</th>
-                                <th>Integration Title</th>
-                                <th>Team Reference Location</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
+
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Integrations</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integration--webhook-mapping" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Integration Identifier</th>
+                                        <th>Integration Title</th>
+                                        <th>Team Reference Location</th>
+                                        <th>Review Reason</th>
+                                        <th>Reviewed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
 															blueprintReport.integrationsToReview.length
 																? blueprintReport.integrationsToReview
 																		.map(
@@ -548,29 +467,33 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
 																		.join('')
 																: '<tr><td colspan="5" class="empty-state">No integrations to review</td></tr>'
 														}
-                        </tbody>
-                    </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="section">
-                <div class="section-header">
-                    <h3>Webhooks</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Webhook Identifier</th>
-                                <th>Webhook Title</th>
-                                <th>Team Reference Location</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Webhooks</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integration--webhook-mapping" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Webhook Identifier</th>
+                                        <th>Webhook Title</th>
+                                        <th>Team Reference Location</th>
+                                        <th>Review Reason</th>
+                                        <th>Reviewed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
 															blueprintReport.webhooksToReview.length
 																? blueprintReport.webhooksToReview
 																		.map(
@@ -587,30 +510,34 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
 																		.join('')
 																: '<tr><td colspan="5" class="empty-state">No webhooks to review</td></tr>'
 														}
-                        </tbody>
-                    </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="section">
-                <div class="section-header">
-                    <h3>Pages</h3>
-                    <a href="#" class="docs-link">see more in the docs</a>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Page Identifier</th>
-                                <th>Page Title</th>
-                                <th>Blueprint</th>
-                                <th>Widget</th>
-                                <th>Review Reason</th>
-                                <th>Reviewed</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Pages</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#pages" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Page Identifier</th>
+                                        <th>Page Title</th>
+                                        <th>Blueprint</th>
+                                        <th>Widget</th>
+                                        <th>Review Reason</th>
+                                        <th>Reviewed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
 															blueprintReport.pagesToReview.length
 																? blueprintReport.pagesToReview
 																		.map(
@@ -628,16 +555,250 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
 																		.join('')
 																: '<tr><td colspan="6" class="empty-state">No pages to review</td></tr>'
 														}
-                        </tbody>
-                    </table>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <button class="collapsible">
+                    <h2>Resources that will be migrated automatically</h2>
+                </button>
+                <a href="https://docs.port.io/sso-rbac/rbac/migration/#resources-that-will-be-migrated-automatically" class="docs-link">see more in the docs</a>
+            </div>
+            <div class="content">
+                <p class="section-description">
+                    These resources will be migrated automatically when the migration script is executed.<br/>
+                    However, if you manage any of these resources through Infrastructure as Code (IaC), GitOps workflows or directly by the API, you will need to update those configurations manually to reflect the changes.
+                </p>
+
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Blueprints</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#blueprints" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Blueprint Identifier</th>
+                                        <th>Blueprint Title</th>
+                                        <th>Migration Type</th>
+                                        <th>Reviewed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
+															blueprintReport.directTeamInheritance.length ||
+															blueprintReport.indirectTeamInheritance.length ||
+															blueprintReport.teamValues.length
+																? [
+																		...blueprintReport.directTeamInheritance.map(
+																			(blueprintWithRelation) => `
+                                                <tr>
+                                                    <td>${blueprintWithRelation.blueprint.identifier}</td>
+                                                    <td>${blueprintWithRelation.blueprint.title || '-'}</td>
+                                                    <td>Direct ownership will be added, the '${blueprintWithRelation.relationIdentifier}' relation identifier will be changed</td>
+                                                    <td><input type="checkbox"></td>
+                                                </tr>
+                                            `,
+																		),
+																		...blueprintReport.indirectTeamInheritance.map(
+																			(blueprint) => `
+                                                <tr>
+                                                    <td>${blueprint.identifier}</td>
+                                                    <td>${blueprint.title || '-'}</td>
+                                                    <td>Inherited ownership will be added with the same path</td>
+                                                    <td><input type="checkbox"></td>
+                                                </tr>
+                                            `,
+																		),
+																		...blueprintReport.teamValues.map(
+																			(blueprintWithCount) => `
+                                                <tr>
+                                                    <td>${blueprintWithCount.blueprint.identifier}</td>
+                                                    <td>${blueprintWithCount.blueprint.title || '-'}</td>
+                                                    <td>Direct ownership will be added, ${blueprintWithCount.entityCount} entities will be updated</td>
+                                                    <td><input type="checkbox"></td>
+                                                </tr>
+                                            `,
+																		),
+																	].join('')
+																: '<tr><td colspan="4" class="empty-state">No blueprints to migrate</td></tr>'
+														}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Blueprint Permissions</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#permissions" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Blueprint Identifier</th>
+                                        <th>Blueprint Title</th>
+                                        <th>Review Reason</th>
+                                        <th>Reviewed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
+															blueprintReport.blueprintPermissionsToReview.length
+																? blueprintReport.blueprintPermissionsToReview
+																		.map(
+																			(blueprintPermission) => `
+                                    <tr>
+                                        <td>${blueprintPermission.blueprint.identifier}</td>
+                                        <td>${blueprintPermission.blueprint.title || '-'}</td>
+                                        <td>${blueprintPermission.reviewReason || '-'}</td>
+                                        <td><input type="checkbox"></td>
+                                    </tr>
+                                `,
+																		)
+																		.join('')
+																: '<tr><td colspan="4" class="empty-state">No blueprint permissions to migrate</td></tr>'
+														}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Page Permissions</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#permissions" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Page Identifier</th>
+                                        <th>Page Title</th>
+                                        <th>Review Reason</th>
+                                        <th>Reviewed</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
+															blueprintReport.pagePermissionsToReview.length
+																? blueprintReport.pagePermissionsToReview
+																		.map(
+																			(pagePermission) => `
+                                <tr>
+                                    <td>${pagePermission.page.identifier}</td>
+                                    <td>${pagePermission.page.title || '-'}</td>
+                                    <td>${pagePermission.reviewReason || '-'}</td>
+                                    <td><input type="checkbox"></td>
+                                </tr>
+                            `,
+																		)
+																		.join('')
+																: '<tr><td colspan="4" class="empty-state">No page permissions to migrate</td></tr>'
+														}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">
+                        <button class="collapsible">
+                            <h3>Action Permissions</h3>
+                        </button>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#permissions" class="docs-link">see more in the docs</a>
+                    </div>
+                    <div class="content">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Action ID</th>
+                                        <th>Action Title</th>
+                                        <th>Blueprint</th>
+                                        <th>Trigger</th>
+                                        <th>Review Reason</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${
+															blueprintReport.actionsPermissionsToMigrate.length
+																? blueprintReport.actionsPermissionsToMigrate
+																		.map(
+																			(actionPermission) => `
+                                    <tr>
+                                        <td>${actionPermission.action.identifier}</td>
+                                        <td>${actionPermission.action.title || '-'}</td>
+                                        <td>${actionPermission.action.trigger.blueprintIdentifier || '-'}</td>
+                                        <td>${actionPermission.action.trigger.type}</td>
+                                        <td>${actionPermission.reviewReason}</td>
+                                    </tr>
+                                `,
+																		)
+																		.join('')
+																: '<tr><td colspan="5" class="empty-state">No action permissions to migrate manually</td></tr>'
+														}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        var coll = document.getElementsByClassName("collapsible");
+        for (var i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function(e) {
+                e.stopPropagation(); // Prevent event bubbling
+                this.classList.toggle("active");
+                var content = this.parentElement.nextElementSibling;
+                if (content.style.maxHeight) {
+                    content.style.maxHeight = null;
+                } else {
+                    // Calculate total height including nested content
+                    content.style.maxHeight = content.scrollHeight + "px";
+                    
+                    // Update parent sections' max-height if this is a nested section
+                    let parent = content.parentElement.closest('.content');
+                    while (parent) {
+                        parent.style.maxHeight = parent.scrollHeight + content.scrollHeight + "px";
+                        parent = parent.parentElement.closest('.content');
+                    }
+                }
+            });
+        }
+
+        // Open main sections by default
+        document.querySelectorAll('.container > .section > .section-header > .collapsible').forEach(button => {
+            button.click();
+        });
+    </script>
 </body>
 </html>`;
 
-	const outputDir = path.join(__dirname, '..', 'output');
+	const outputDir = path.join(__dirname, '..', '..', 'output');
 	fs.mkdirSync(outputDir, { recursive: true });
 	fs.writeFileSync(path.join(outputDir, 'index.html'), html);
 };
@@ -648,6 +809,7 @@ export const generateReport = (
 	indirectTeamInheritance: any[],
 	teamValues: BlueprintWithCount[],
 	actionsToReview: ActionWithJQLocation[],
+	actionsPermissionsToMigrate: ActionPermissionsWithAction[],
 	actionsPermissionsToReview: ActionPermissionsWithAction[],
 	integrationsToReview: IntegrationWithLocation[],
 	webhooksToReview: WebhookWithLocation[],
@@ -661,6 +823,7 @@ export const generateReport = (
 		indirectTeamInheritance,
 		teamValues,
 		actionsToReview,
+		actionsPermissionsToMigrate,
 		actionsPermissionsToReview,
 		integrationsToReview,
 		webhooksToReview,
