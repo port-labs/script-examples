@@ -131,7 +131,7 @@ const start = async () => {
 				console.log('Found actions permissions to review:', colors.cyan(actionsPermissionsToReview.length.toString()));
 
 				const orgIntegrations = await getAllIntegrations(orgPortClient);
-				const integrationsToReview = findIntegrationsWithTeamReference(orgIntegrations);
+				const integrationsToReview = findIntegrationsWithTeamReference(orgIntegrations, teamRelations);
 				console.log('Found integrations to review:', colors.cyan(integrationsToReview.length.toString()));
 
 				const orgWebhooks = await getAllWebhooks(orgPortClient);

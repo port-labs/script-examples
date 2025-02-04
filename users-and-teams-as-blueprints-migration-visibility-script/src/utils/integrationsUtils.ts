@@ -1,7 +1,7 @@
 
 import { IntegrationWithLocation, TeamRelationReference } from '../types';
 
-const findTeamMappings = (obj: unknown): string[] => {
+const findTeamMappings = (obj: unknown, teamRelations: TeamRelationReference[]): string[] => {
 	const paths: string[] = [];
 
 	if (typeof obj !== 'object' || obj === null) {
@@ -11,21 +11,30 @@ const findTeamMappings = (obj: unknown): string[] => {
 	for (const [key, value] of Object.entries(obj)) {
 		// Found a team mapping in entity configuration
 		if (
-			key === 'team' ||
-			key === 'teams' ||
-			(typeof value === 'string' && (value.includes('.team') || value.includes('teams')))
+			key === 'team'
 		) {
 			paths.push('Direct team mapping in entity configuration');
 			continue;
 		}
 
+		if (key === 'relations') {
+			const relationsMappingKeys = Object.keys(value);
+			for (const relation of teamRelations) {
+				if (relationsMappingKeys.includes(relation.relationIdentifier)) {
+					paths.push(
+						`Mapping to team relation '${relation.relationIdentifier}' from blueprint '${relation.blueprintIdentifier}'`,
+					);
+				}
+			}
+		}
+
 		if (Array.isArray(value)) {
 			for (let i = 0; i < value.length; i++) {
-				const result = findTeamMappings(value[i]);
+				const result = findTeamMappings(value[i], teamRelations);
 				paths.push(...result);
 			}
 		} else if (typeof value === 'object' && value !== null) {
-			const result = findTeamMappings(value);
+			const result = findTeamMappings(value, teamRelations);
 			paths.push(...result);
 		}
 	}
@@ -35,6 +44,7 @@ const findTeamMappings = (obj: unknown): string[] => {
 
 export const findIntegrationsWithTeamReference = (
 	integrations: any[],
+	teamRelations: TeamRelationReference[],
 ): IntegrationWithLocation[] => {
 	return integrations.reduce<IntegrationWithLocation[]>((acc, integration) => {
 		if (!integration.config) {
@@ -46,7 +56,7 @@ export const findIntegrationsWithTeamReference = (
 			return acc;
 		}
 
-		const paths = findTeamMappings(integration.config);
+		const paths = findTeamMappings(integration.config, teamRelations);
 		if (paths.length > 0) {
 			acc.push({
 				integration,
