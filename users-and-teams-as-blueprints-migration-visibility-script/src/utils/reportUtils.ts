@@ -435,7 +435,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                         <button class="collapsible">
                             <h3>Integrations</h3>
                         </button>
-                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integration--webhook-mapping" class="docs-link">see more in the docs</a>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integration--webhook-mappings" class="docs-link">see more in the docs</a>
                     </div>
                     <div class="content">
                         <div class="table-container">
@@ -478,7 +478,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
                         <button class="collapsible">
                             <h3>Webhooks</h3>
                         </button>
-                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integration--webhook-mapping" class="docs-link">see more in the docs</a>
+                        <a href="https://docs.port.io/sso-rbac/rbac/migration/#integration--webhook-mappings" class="docs-link">see more in the docs</a>
                     </div>
                     <div class="content">
                         <div class="table-container">
