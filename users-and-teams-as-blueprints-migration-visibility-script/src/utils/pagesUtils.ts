@@ -1,4 +1,4 @@
-import { PagePermissionsWithPage, PageWithLocation } from '../types';
+import { PagePermissionsWithPage, PageWithLocation, TeamRelationReference } from '../types';
 
 const TABLE_WIDGET_TYPES = {
 	TABLE_ENTITIES_EXPLORER: 'table-entities-explorer',
@@ -46,7 +46,12 @@ type QueryBuilderConfig = {
 	relatedProperty?: string;
 };
 
-const findTeamReferencesInBlueprintConfig = (config: QueryBuilderConfig, teamRelationIdentifiers: string[]): string[] => {
+type TeamReference = {
+	reference: string;
+	widgetTitle: string;
+}
+
+const findTeamReferencesInBlueprintConfig = (config: QueryBuilderConfig, teamRelations: TeamRelationReference[]): string[] => {
 	const references: string[] = [];
 
 	// Check propertiesSettings
@@ -54,24 +59,24 @@ const findTeamReferencesInBlueprintConfig = (config: QueryBuilderConfig, teamRel
 		const { shown, hidden, order } = config.propertiesSettings;
 
 		// Check for team relation identifiers
-		teamRelationIdentifiers.forEach((identifier) => {
-			if (shown?.includes(identifier)) {
-				references.push(`${identifier} in shown properties`);
+		teamRelations.forEach((relation) => {
+			if (shown?.includes(relation.relationIdentifier)) {
+				references.push(`'${relation.relationIdentifier}' relation of blueprint '${relation.blueprintIdentifier}' in shown properties`);
 			}
-			if (hidden?.includes(identifier)) {
-				references.push(`${identifier} in hidden properties`);
+			if (hidden?.includes(relation.relationIdentifier)) {
+				references.push(`'${relation.relationIdentifier}' relation of blueprint '${relation.blueprintIdentifier}' in hidden properties`);
 			}
-			if (order?.includes(identifier)) {
-				references.push(`${identifier} in properties order`);
+			if (order?.includes(relation.relationIdentifier)) {
+				references.push(`'${relation.relationIdentifier}' relation of blueprint '${relation.blueprintIdentifier}' in properties order`);
 			}
 		});
 	}
 
 	// Check groupSettings
 	if (config.groupSettings?.groupBy) {
-		teamRelationIdentifiers.forEach((identifier) => {
-			if (config.groupSettings?.groupBy.includes(identifier)) {
-				references.push(`${identifier} in group by`);
+		teamRelations.forEach((relation) => {
+			if (config.groupSettings?.groupBy.includes(relation.relationIdentifier)) {
+				references.push(`'${relation.relationIdentifier}' relation of blueprint '${relation.blueprintIdentifier}' in group by`);
 			}
 		});
 	}
@@ -79,9 +84,9 @@ const findTeamReferencesInBlueprintConfig = (config: QueryBuilderConfig, teamRel
 	// Check sortSettings
 	if (config.sortSettings?.sortBy) {
 		config.sortSettings.sortBy.forEach((sort) => {
-			teamRelationIdentifiers.forEach((identifier) => {
-				if (sort.property === identifier || sort.property.startsWith(`${identifier}.`)) {
-					references.push(`${identifier} in sort settings`);
+			teamRelations.forEach((relation) => {
+				if (sort.property === relation.relationIdentifier || sort.property.startsWith(`${relation.relationIdentifier}.`)) {
+					references.push(`'${relation.relationIdentifier}' relation of blueprint '${relation.blueprintIdentifier}' in sort settings`);
 				}
 			});
 		});
@@ -90,9 +95,9 @@ const findTeamReferencesInBlueprintConfig = (config: QueryBuilderConfig, teamRel
 	// Check filterSettings
 	if (config.filterSettings?.filterBy?.rules) {
 		config.filterSettings.filterBy.rules.forEach((rule) => {
-			teamRelationIdentifiers.forEach((identifier) => {
-				if (rule.property === identifier || rule.property.startsWith(`${identifier}.`)) {
-					references.push(`${identifier} in filter rules`);
+			teamRelations.forEach((relation) => {
+				if (rule.property === relation.relationIdentifier || rule.property.startsWith(`${relation.relationIdentifier}.`)) {
+					references.push(`'${relation.relationIdentifier}' relation of blueprint '${relation.blueprintIdentifier}' in filter rules`);
 				}
 			});
 		});
@@ -103,47 +108,57 @@ const findTeamReferencesInBlueprintConfig = (config: QueryBuilderConfig, teamRel
 
 const findTeamReferencesInWidget = (
 	widget: any,
-	teamRelationIdentifiers: string[],
-): { references: string[]; widgetTitle?: string } => {
-	const references: string[] = [];
+	teamRelations: TeamRelationReference[],
+): TeamReference[] => {
+	const references: TeamReference[] = [];
+	let currentReference: TeamReference | undefined;
 
 	// Check excludedFields
 	if (Array.isArray(widget.excludedFields)) {
 		const hasTeamField = widget.excludedFields.some((field: string) =>
-			teamRelationIdentifiers.some(
-				(identifier) => field === `relations.${identifier}` || field.startsWith(`relations.${identifier}.`),
+			teamRelations.some(
+				(relation) => field === `relations.${relation.relationIdentifier}` || field.startsWith(`relations.${relation.relationIdentifier}.`),
 			),
 		);
 		if (hasTeamField) {
-			references.push('Team field in excludedFields');
+			currentReference = {
+				reference: 'Team relation identifier in excludedFields',
+				widgetTitle: widget.title || widget.id,
+			};
 		}
 	}
 
 	// Check blueprintConfig
 	if (widget.blueprintConfig && typeof widget.blueprintConfig === 'object') {
 		Object.entries(widget.blueprintConfig).forEach(([bpId, config]: [string, any]) => {
-			const configReferences = findTeamReferencesInBlueprintConfig(config, teamRelationIdentifiers);
-			references.push(...configReferences);
+			const configReferences = findTeamReferencesInBlueprintConfig(config, teamRelations);
+			if (configReferences.length > 0) {
+				currentReference = {
+					reference: (currentReference ? [currentReference.reference, ...configReferences] : configReferences).join('<br/>'),
+					widgetTitle: widget.title || widget.id,
+				};
+			}
 		});
+	}
+
+	if (currentReference) {
+		references.push(currentReference);
 	}
 
 	// Check for nested widgets (for dashboard widgets)
 	if (widget.type === TABLE_WIDGET_TYPES.DASHBOARD_WIDGET && Array.isArray(widget.widgets)) {
 		widget.widgets.forEach((nestedWidget: any) => {
-			const nestedResult = findTeamReferencesInWidget(nestedWidget, teamRelationIdentifiers);
-			if (nestedResult.references.length > 0) {
-				references.push(...nestedResult.references);
+			const nestedResult = findTeamReferencesInWidget(nestedWidget, teamRelations);
+			if (nestedResult.length > 0) {
+				references.push(...nestedResult);
 			}
 		});
 	}
 
-	return {
-		references,
-		widgetTitle: references.length > 0 ? widget.title : undefined,
-	};
+	return references;
 };
 
-export const findPagesWithTeamReferences = (pages: any[], teamRelationIdentifiers: string[]): PageWithLocation[] => {
+export const findPagesWithTeamReferences = (pages: any[], teamRelations: TeamRelationReference[]): PageWithLocation[] => {
 	const pagesWithTeamReferences: PageWithLocation[] = [];
 
 	for (const page of pages) {
@@ -152,16 +167,17 @@ export const findPagesWithTeamReferences = (pages: any[], teamRelationIdentifier
 		}
 
 		for (const widget of page.widgets) {
-			const { references, widgetTitle } = findTeamReferencesInWidget(widget, teamRelationIdentifiers);
+			const references = findTeamReferencesInWidget(widget, teamRelations);
 			if (references.length > 0) {
-				pagesWithTeamReferences.push({
-					page,
-					widgetId: widget.id,
-					widgetTitle,
-					blueprintIdentifier: Object.keys(widget.blueprintConfig || {})[0] || '',
-					relationReferences: references,
+				references.forEach((reference) => {
+					pagesWithTeamReferences.push({
+						page,
+						widgetId: widget.id,
+						widgetTitle: reference.widgetTitle,
+						blueprintIdentifier: Object.keys(widget.blueprintConfig || {})[0] || '',
+						relationReferences: [reference.reference],
+					});
 				});
-				break; // Found a reference in this page, no need to check other widgets
 			}
 		}
 	}
