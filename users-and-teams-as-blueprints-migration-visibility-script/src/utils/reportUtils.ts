@@ -572,7 +572,7 @@ const generateHtmlReport = (org: ScriptOrg, blueprintReport: IBlueprintReport) =
             </div>
             <div class="content">
                 <p class="section-description">
-                    These resources will be migrated automatically when the migration script is executed.<br/>
+                    These resources will be migrated automatically when the full migration is executed via the API.<br/>
                     However, if you manage any of these resources through Infrastructure as Code (IaC), GitOps workflows or directly by the API, you will need to update those configurations manually to reflect the changes.
                 </p>
 

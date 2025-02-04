@@ -69,7 +69,7 @@ const start = async () => {
 	if (config) {
 		const { REGION, CLIENT_ID, CLIENT_SECRET } = config;
 		const redactedClientId = CLIENT_ID.slice(0, 6) + '...' + CLIENT_ID.slice(-4);
-		console.log(colors.green(`Starting migration with client id of - ${redactedClientId}`));
+		console.log(colors.green(`Starting visibility script with client id of - ${redactedClientId}`));
 		try {
 				const orgPortClient = getPortApiClient(REGION, CLIENT_ID, CLIENT_SECRET);
 				const org = await getOrg(orgPortClient);
@@ -142,7 +142,7 @@ const start = async () => {
 				const orgPagesPermissions = await getAllPagesPermissions(orgPortClient, orgPages);
 				const pagesToReview = findPagesWithTeamReferences(
 					orgPages,
-					orgBlueprintsWithTeamInheritanceToTeamBlueprint.map((b) => b.relationIdentifier),
+					teamRelations,
 				);
 				const pagePermissionsToReview = findPagesWithTeamPermissions(orgPagesPermissions);
 				console.log('Found pages to review:', colors.cyan(pagesToReview.length.toString()));
