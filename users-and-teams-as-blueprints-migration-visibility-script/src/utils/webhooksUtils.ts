@@ -35,12 +35,14 @@ const findTeamReferencesInMappings = (
 			Object.values(mapping.entity.relations).forEach(checkValue);
 		}
 
-		const relationsMappingKeys = Object.keys(mapping.entity.relations);
-		for (const relation of teamRelations) {
-			if (relationsMappingKeys.includes(relation.relationIdentifier)) {
+		if (mapping.entity.relations) {
+			const relationsMappingKeys = Object.keys(mapping.entity.relations);
+			for (const relation of teamRelations) {
+				if (relationsMappingKeys.includes(relation.relationIdentifier)) {
 				paths.push(
 					`Mapping to team relation '${relation.relationIdentifier}' from blueprint '${relation.blueprintIdentifier}'`,
-				);
+					);
+				}
 			}
 		}
 	}
