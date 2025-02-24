@@ -48,7 +48,7 @@ export const findIntegrationsWithTeamReference = (
 ): IntegrationWithLocation[] => {
 	return integrations.reduce<IntegrationWithLocation[]>((acc, integration) => {
 		const integrationType = integration.integrationType.toLowerCase();
-		if (!integration.config && (integrationType.includes('git') || integrationType.includes('bitbucket')) {
+		if (!integration.config && (integrationType.includes('git') || integrationType.includes('bitbucket'))) {
 			acc.push({
 				integration,
 				teamReferencePaths: [],
