@@ -34,7 +34,7 @@ The script analyzes:
 3. Run `npm install` to install the dependencies
 4. Create a `config.json` file in the root of the repository with the following structure:
 
-```json
+```json5
 {
     "REGION": "eu", // "eu" or "us"
     "CLIENT_ID": "your_client_id_here",
