@@ -3,7 +3,7 @@ import Client from './Client';
 export default class PortClient extends Client {
 	actions() {
 		return {
-			get: async (version = 'v1', trigger_type?: 'self-service' | 'automation'): Promise<any[]> => {
+			get: async (version = 'v2', trigger_type?: 'self-service' | 'automation'): Promise<any[]> => {
 				const { actions } = await this.request({
 					pathname: `/v1/actions`,
 					query: {
@@ -377,7 +377,7 @@ export default class PortClient extends Client {
 		return {
 			get: async (limit?: number, version?: string): Promise<any[]> => {
 				const { runs } = await this.request({
-					pathname: `/v1/actions/runs${limit ? `?limit=${limit}&version=${version ?? 'v1'}` : ''}`,
+					pathname: `/v1/actions/runs${limit ? `?limit=${limit}&version=${version ?? 'v2'}` : ''}`,
 					method: 'GET',
 				});
 				return runs;
