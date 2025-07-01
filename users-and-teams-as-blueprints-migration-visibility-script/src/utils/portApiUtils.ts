@@ -89,8 +89,12 @@ export const getAllPagesPermissions = async (portClient: PortClient, pages: any[
 	const filteredPages = pages.filter((page) => !page.identifier.startsWith('$') && page.sidebar);
 
 	for (const page of filteredPages) {
-		const permissions = await getPagePermissions(portClient, page.identifier);
-		pagePermissions.push({ page, permissions });
+		try {
+			const permissions = await getPagePermissions(portClient, page.identifier);
+			pagePermissions.push({ page, permissions });
+		} catch (error) {
+			console.error(`Error getting page permissions for ${page.identifier}`, error);
+		}
 	}
 	return pagePermissions;
 };
