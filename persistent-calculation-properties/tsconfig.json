@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"lib": ["es2023"],
+		"experimentalDecorators": true,
+		"composite": true,
+		"resolveJsonModule": true,
+		"moduleResolution": "Node16",
+		"module": "Node16",
+		"rootDir": "src",
+		"outDir": "dist",
+		"types": ["node"],
+		"target": "ES2015",
+		"downlevelIteration": true
+	},
+	"include": ["src"],
+	"exclude": ["dist"]
+}
