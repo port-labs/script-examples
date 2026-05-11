@@ -1,8 +1,8 @@
 import PortClient from '../clients/PortClient';
 
 const portApiUrl: Record<string, string> = {
-	eu: 'https://api.getport.io',
-	us: 'https://api.us.getport.io',
+	eu: 'https://api.port.io',
+	us: 'https://api.us.port.io',
 };
 
 export const getPortApiClient = (region: string, clientId: string, clientSecret: string) => {
