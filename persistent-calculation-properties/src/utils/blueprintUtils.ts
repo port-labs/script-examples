@@ -1,6 +1,6 @@
 import { CalculationPropertyFinding } from '../types';
 
-const NOW_PATTERN = /\bnow\b/;
+const NOW_PATTERN = /"(?:[^"\\]|\\.)*"|(\bnow\b)/g;
 const RELATION_TITLE_PATTERN = /\.relations\.[\w']+\.title/;
 const RELATION_IDENTIFIER_PATTERN = /\.relations\.[\w']+\.identifier/;
 
@@ -17,7 +17,8 @@ export const findCalculationPropertiesWithBreakingChanges = (
 			const calculation: string = calcProp.calculation ?? '';
 			const reasons: string[] = [];
 
-			if (NOW_PATTERN.test(calculation)) {
+			NOW_PATTERN.lastIndex = 0;
+			if ([...calculation.matchAll(NOW_PATTERN)].some(m => m[1] !== undefined)) {
 				reasons.push('Uses the "now" JQ function (relative date). Value will only be accurate to roughly an hour.');
 			}
 
