@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/port-labs/script-examples#readme",
   "dependencies": {
-    "axios": "^0.27.2"
+    "axios": "^0.32.0"
   }
 }
