@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const DOCS_URL = "https://docs.port.io/customize-pages-dashboards-and-plugins/page/";
+const DOCS_URL = "https://docs.port.io/api-reference/pages/";
 
 function escapeHtml(str) {
   return String(str)
@@ -11,56 +11,157 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
+const MUTED = '<span class="subtitle">—</span>';
+
 /**
- * Renders a single validation error as readable HTML. Errors may be plain
- * strings or objects, so we handle both.
+ * Normalizes a validation error (which may be a plain string or an object) into
+ * a consistent shape, pulling out widget details when they exist.
  *
  * @param {any} error
- * @returns {string}
+ * @returns {{widgetType: string, widgetTitle: string, path: string, message: string}}
  */
-function renderError(error) {
+function normalizeError(error) {
   if (error && typeof error === "object") {
-    const message = error.message || error.error || JSON.stringify(error);
-    return `<li><code>${escapeHtml(message)}</code></li>`;
+    const widget = error.widget || {};
+    return {
+      widgetType: error.widgetType || widget.type || "",
+      widgetTitle: error.widgetTitle || widget.title || "",
+      path: formatPath(error.path),
+      message: error.message || error.error || JSON.stringify(error),
+    };
   }
-  return `<li><code>${escapeHtml(error)}</code></li>`;
+  return { widgetType: "", widgetTitle: "", path: "", message: String(error) };
 }
 
-function renderOrgSection(org) {
-  const rows = org.findings.length
-    ? org.findings
-        .map(
-          (finding) => `
+/**
+ * Formats a validation error path into a readable string. Paths may be provided
+ * as an array of segments (e.g. ["widgets", 0, "dataset"]) or a plain string.
+ *
+ * @param {any} path
+ * @returns {string}
+ */
+function formatPath(path) {
+  if (Array.isArray(path)) {
+    return path.join(".");
+  }
+  if (path === undefined || path === null) {
+    return "";
+  }
+  return String(path);
+}
+
+/**
+ * Renders one table row per validation error for a page. When a page has no
+ * error details, a single placeholder row is rendered instead.
+ *
+ * @param {{identifier: string, title?: string, errors: any[]}} finding
+ * @returns {string}
+ */
+function renderFindingRows(finding) {
+  const identifierCell = `<code>${escapeHtml(finding.identifier)}</code>`;
+  const titleCell = finding.title ? escapeHtml(finding.title) : MUTED;
+
+  if (!finding.errors.length) {
+    return `
 							<tr>
-								<td><code>${escapeHtml(finding.identifier)}</code></td>
-								<td>${finding.title ? escapeHtml(finding.title) : '<span class="subtitle">—</span>'}</td>
-								<td>
-									${
-                    finding.errors.length
-                      ? `<ul class="errors">${finding.errors.map(renderError).join("")}</ul>`
-                      : '<span class="subtitle">No details provided</span>'
-                  }
-								</td>
+								<td>${identifierCell}</td>
+								<td>${titleCell}</td>
+								<td>${MUTED}</td>
+								<td>${MUTED}</td>
+								<td>${MUTED}</td>
+								<td><span class="subtitle">No details provided</span></td>
+							</tr>`;
+  }
+
+  return finding.errors
+    .map((error) => {
+      const { widgetType, widgetTitle, path, message } = normalizeError(error);
+      return `
+							<tr>
+								<td>${identifierCell}</td>
+								<td>${titleCell}</td>
+								<td>${widgetType ? `<code>${escapeHtml(widgetType)}</code>` : MUTED}</td>
+								<td>${widgetTitle ? escapeHtml(widgetTitle) : MUTED}</td>
+								<td>${path ? `<code>${escapeHtml(path)}</code>` : MUTED}</td>
+								<td><code>${escapeHtml(message)}</code></td>
+							</tr>`;
+    })
+    .join("");
+}
+
+/**
+ * Renders a table of pages that could not be validated (the validate request
+ * errored). Returns an empty string when there are no such pages.
+ *
+ * @param {{failedPages?: Array<{identifier: string, title?: string, reason: string}>}} org
+ * @returns {string}
+ */
+function renderFailedSection(org) {
+  const failedPages = org.failedPages || [];
+  if (!failedPages.length) {
+    return "";
+  }
+
+  const rows = failedPages
+    .map(
+      (page) => `
+							<tr>
+								<td><code>${escapeHtml(page.identifier)}</code></td>
+								<td>${page.title ? escapeHtml(page.title) : MUTED}</td>
+								<td><code>${escapeHtml(page.reason)}</code></td>
 							</tr>`
-        )
-        .join("")
-    : '<tr><td colspan="3" class="empty-state">All pages are valid 🎉</td></tr>';
+    )
+    .join("");
 
   return `
-			<div class="section">
-				<div class="section-header">
-					<h2>${escapeHtml(org.name)}</h2>
-					<span class="section-badge ${org.findings.length ? "badge-error" : "badge-success"}">
-						${org.findings.length} invalid / ${org.totalPages} pages
-					</span>
-				</div>
+				<h3 class="failed-heading">Failed to validate (${failedPages.length})</h3>
+				<p class="section-note">These pages could not be validated because the validation request errored. Check them manually in the organization.</p>
 				<div class="table-container">
 					<table>
 						<thead>
 							<tr>
 								<th>Page Identifier</th>
 								<th>Title</th>
-								<th>Errors</th>
+								<th>Reason</th>
+							</tr>
+						</thead>
+						<tbody>
+							${rows}
+						</tbody>
+					</table>
+				</div>`;
+}
+
+function renderOrgSection(org) {
+  const failedCount = org.failedPages ? org.failedPages.length : 0;
+  const hasIssues = org.findings.length || failedCount;
+
+  const emptyMessage = failedCount
+    ? "No invalid pages found"
+    : "All pages are valid 🎉";
+
+  const rows = org.findings.length
+    ? org.findings.map(renderFindingRows).join("")
+    : `<tr><td colspan="6" class="empty-state">${emptyMessage}</td></tr>`;
+
+  return `
+			<details class="section" open>
+				<summary class="section-header">
+					<h2>${escapeHtml(org.name)}</h2>
+					<span class="section-badge ${hasIssues ? "badge-error" : "badge-success"}">
+						${org.findings.length} invalid${failedCount ? ` &middot; ${failedCount} failed` : ""} / ${org.totalPages} pages
+					</span>
+				</summary>
+				<div class="table-container">
+					<table>
+						<thead>
+							<tr>
+								<th>Page Identifier</th>
+								<th>Title</th>
+								<th>Widget Type</th>
+								<th>Widget Title</th>
+								<th>Path</th>
+								<th>Error</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -68,7 +169,8 @@ function renderOrgSection(org) {
 						</tbody>
 					</table>
 				</div>
-			</div>`;
+				${renderFailedSection(org)}
+			</details>`;
 }
 
 /**
@@ -83,6 +185,10 @@ function generateReport(results) {
   const totalPages = results.reduce((sum, org) => sum + org.totalPages, 0);
   const totalInvalid = results.reduce(
     (sum, org) => sum + org.findings.length,
+    0
+  );
+  const totalFailed = results.reduce(
+    (sum, org) => sum + (org.failedPages ? org.failedPages.length : 0),
     0
   );
 
@@ -225,6 +331,27 @@ function generateReport(results) {
 			margin-bottom: 16px;
 		}
 
+		summary.section-header {
+			cursor: pointer;
+			list-style: none;
+			user-select: none;
+		}
+
+		summary.section-header::-webkit-details-marker {
+			display: none;
+		}
+
+		summary.section-header::before {
+			content: "▶";
+			font-size: 11px;
+			color: var(--text-secondary);
+			transition: transform 0.2s ease;
+		}
+
+		details[open] > summary.section-header::before {
+			transform: rotate(90deg);
+		}
+
 		.section-badge {
 			font-size: 13px;
 			font-weight: 600;
@@ -290,6 +417,18 @@ function generateReport(results) {
 			font-size: 13px;
 		}
 
+		.failed-heading {
+			color: var(--error-text);
+			margin: 28px 0 4px;
+			font-size: 1.1em;
+		}
+
+		.section-note {
+			color: var(--text-secondary);
+			font-size: 13px;
+			margin: 0 0 12px;
+		}
+
 		ul.errors {
 			margin: 0;
 			padding-left: 18px;
@@ -335,6 +474,10 @@ function generateReport(results) {
 			<div class="stat-box">
 				<div class="stat-number ${totalInvalid ? "error" : ""}">${totalInvalid}</div>
 				<div class="stat-label">Invalid Pages</div>
+			</div>
+			<div class="stat-box">
+				<div class="stat-number ${totalFailed ? "error" : ""}">${totalFailed}</div>
+				<div class="stat-label">Failed to Validate</div>
 			</div>
 		</div>
 

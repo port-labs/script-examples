@@ -33,13 +33,19 @@ async function main() {
 
 /**
  * Prints a consolidated summary of invalid pages across all organizations,
- * grouped by organization, after all validation has finished.
+ * grouped by organization, after all validation has finished. Pages that could
+ * not be validated (e.g. the validate request errored) are listed separately at
+ * the end so they can be manually checked in their organization.
  *
- * @param {Array<{name: string, totalPages: number, findings: Array<{identifier: string, errors: any[]}>}>} results
+ * @param {Array<{name: string, totalPages: number, findings: Array<{identifier: string, errors: any[]}>, failedPages?: Array<{identifier: string, title?: string, reason: string}>}>} results
  */
 function printSummary(results) {
   const totalInvalid = results.reduce(
     (sum, org) => sum + org.findings.length,
+    0
+  );
+  const totalFailed = results.reduce(
+    (sum, org) => sum + (org.failedPages ? org.failedPages.length : 0),
     0
   );
 
@@ -50,19 +56,32 @@ function printSummary(results) {
 
     if (org.findings.length === 0) {
       console.log("  All pages are valid");
-      continue;
-    }
-
-    for (const finding of org.findings) {
-      console.log(
-        `  INVALID ${finding.identifier}: ${JSON.stringify(finding.errors)}`
-      );
+    } else {
+      for (const finding of org.findings) {
+        console.log(
+          `  INVALID ${finding.identifier}: ${JSON.stringify(finding.errors)}`
+        );
+      }
     }
   }
 
   console.log(
     `\nTotal: ${totalInvalid} invalid page(s) across ${results.length} organization(s)`
   );
+
+  if (totalFailed > 0) {
+    console.log("\n---- Failed pages to check (validation errored) ----");
+    for (const org of results) {
+      if (!org.failedPages || org.failedPages.length === 0) continue;
+      console.log(`\n[${org.name}]`);
+      for (const failed of org.failedPages) {
+        console.log(`  FAILED ${failed.identifier}: ${failed.reason}`);
+      }
+    }
+    console.log(
+      `\nTotal: ${totalFailed} page(s) failed to validate across ${results.length} organization(s)`
+    );
+  }
 }
 
 main().catch((error) => {

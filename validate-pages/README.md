@@ -72,7 +72,10 @@ npm run report
 ```
 
 This creates `output/index.html` with:
-- Summary statistics (organizations, total pages, invalid pages)
-- A per-organization section listing each invalid page with its identifier, title, and validation errors
+- Summary statistics (organizations, total pages, invalid pages, pages that failed to validate)
+- A per-organization section listing each invalid page with its identifier, title, widget type/title, path, and validation error
+- A "Failed to validate" table per organization for pages whose validation request errored (e.g. HTTP 500), so they can be checked manually
 
 Open the file in any browser to view it. The `output/` directory is git-ignored.
+
+Note: each run overwrites `output/index.html`, so only the last run's output is saved. Copy or rename the file if you want to keep a previous report.

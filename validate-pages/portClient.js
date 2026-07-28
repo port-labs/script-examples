@@ -41,6 +41,9 @@ function parseOrgs() {
   }
 }
 
+// Page identifiers to skip during validation (e.g. built-in system pages).
+const SKIP_PAGE_IDENTIFIERS = new Set(["$run"]);
+
 async function getToken(apiUrl, clientId, clientSecret) {
   const res = await axios.post(`${apiUrl}/v1/auth/access_token`, {
     clientId,
@@ -73,32 +76,45 @@ async function collectFindings(apiUrl, org) {
     params: { compact: "true" },
     headers,
   });
-  const pages = pagesRes.data.pages;
+  const pages = pagesRes.data.pages.filter(
+    (page) => !SKIP_PAGE_IDENTIFIERS.has(page.identifier)
+  );
 
-  console.log(`  Found ${pages.length} pages. Validating...`);
+  console.log(`Found ${pages.length} pages to validate`);
   const findings = [];
+  const failedPages = [];
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
     const identifier = page.identifier;
+
     console.log(`  [${i + 1}/${pages.length}] Validating ${identifier}`);
-    const validateRes = await axios.get(
-      `${apiUrl}/v1/pages/${identifier}/validate`,
-      { headers }
-    );
-    const result = validateRes.data;
-    if (!(result.valid ?? true)) {
-      findings.push({
-        identifier,
-        title: page.title,
-        errors: result.errors || [],
-      });
+    try {
+      const validateRes = await axios.get(
+        `${apiUrl}/v1/pages/${identifier}/validate`,
+        { headers }
+      );
+      const result = validateRes.data;
+      if (!(result.valid ?? true)) {
+        findings.push({
+          identifier,
+          title: page.title,
+          errors: result.errors || [],
+        });
+      }
+    } catch (error) {
+      const reason = error.response
+        ? `HTTP ${error.response.status}`
+        : error.message;
+      console.warn(`  WARNING: failed to validate ${identifier}: ${reason}`);
+      failedPages.push({ identifier, title: page.title, reason });
     }
   }
 
   console.log(
-    `  Done with ${name}: ${findings.length} invalid page(s) out of ${pages.length}`
+    `  Done with ${name}: ${findings.length} invalid page(s) out of ${pages.length}` +
+      (failedPages.length ? `, ${failedPages.length} failed to validate` : "")
   );
-  return { name, totalPages: pages.length, findings };
+  return { name, totalPages: pages.length, findings, failedPages };
 }
 
 module.exports = {
