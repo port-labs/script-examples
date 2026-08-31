@@ -1,23 +1,23 @@
 /**
- * Script: Validate Port Pages (report)
+ * Script: Fix Port Pages (report)
  *
- * Same validation as `index.js`, but instead of console-only output it writes
- * both a styled HTML report (`output/validate-<timestamp>.html`) and a JSON
- * report (`output/validate-report-<timestamp>.json`) summarizing the invalid
- * pages across all configured organizations. Each run gets its own
+ * Same validate + fix flow as `fix.js`, but instead of console-only output it
+ * writes both a styled HTML report (`output/fix-report-<timestamp>.html`)
+ * and a JSON report (`output/fix-report-<timestamp>.json`) summarizing the
+ * fixes made across all configured organizations. Each run gets its own
  * timestamped files, so previous reports are never overwritten.
  *
- * Usage: `npm run validate:report`
+ * Usage: `npm run fix:report`
  *
  * See `.env.example` for the required configuration.
  */
 
 require("dotenv").config();
 
-const { KeyError, getApiUrl, parseOrgs, collectFindings } = require("./portClient");
+const { KeyError, getApiUrl, parseOrgs, collectFixes } = require("./portClient");
 const {
-  generateReport,
-  generateJsonReport,
+  generateFixReport,
+  generateFixJsonReport,
   formatTimestampForFilename,
 } = require("./reportUtils");
 
@@ -27,9 +27,10 @@ async function main() {
 
   const results = [];
   for (const org of orgs) {
-    const result = await collectFindings(apiUrl, org);
+    const result = await collectFixes(apiUrl, org);
+    const pagesWithFixesApplied = result.fixes.filter((fix) => fix.fixesApplied).length;
     console.log(
-      `[${result.name}] ${result.totalPages} pages, ${result.findings.length} invalid`
+      `[${result.name}] ${result.totalPages} pages, applied fixes to ${pagesWithFixesApplied}/${result.fixes.length} page(s) with errors`
     );
     results.push(result);
   }
@@ -38,10 +39,10 @@ async function main() {
   // pair of files is easy to identify together.
   const timestamp = formatTimestampForFilename();
 
-  const htmlPath = generateReport(results, timestamp);
+  const htmlPath = generateFixReport(results, timestamp);
   console.log(`\nHTML report written to ${htmlPath}`);
 
-  const jsonPath = generateJsonReport(results, timestamp);
+  const jsonPath = generateFixJsonReport(results, timestamp);
   console.log(`JSON report written to ${jsonPath}`);
 }
 

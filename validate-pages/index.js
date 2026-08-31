@@ -12,7 +12,8 @@
  * Optional environment variables:
  *   - PORT_API_URL: Base URL of the Port API (defaults to https://api.getport.io).
  *
- * To generate an HTML report instead of console output, run `npm run report`.
+ * To generate report files (JSON and HTML) instead of console-only output, run
+ * `npm run validate:report`.
  */
 
 require("dotenv").config();
