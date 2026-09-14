@@ -2,7 +2,7 @@
 
 This project iterates over one or more Port organizations, lists every page in each organization, and validates them via the Port API. It includes two related flows:
 - **Validate** — only checks pages and reports any validation errors found
-- **Fix** — validates pages and, for any page with errors, immediately calls the Port API fix endpoint on it, then reports which fixes were applied
+- **Fix** — validates pages and, for any page with errors, applies client-side fixes (including setting `displayMode: "widget"` on `table-entities-explorer` widgets inside `dashboard-widget` containers), calls the Port API fix endpoint, then reports which fixes were applied
 
 Each flow can be run as console-only output or as a report (HTML + JSON) generator.
 
@@ -83,8 +83,9 @@ The script will:
 1. Authenticate against each organization using its Port API credentials
 2. List all pages in the organization (in compact form)
 3. Validate each page via the Port API
-4. For any page with validation errors, immediately call the Port API fix endpoint on it
-5. Report the fixes that were applied to each page
+4. Apply client-side fixes on every page (including setting missing `displayMode` on table widgets inside dashboard widgets), then validate each page
+5. For any page that is still invalid, call the Port API fix endpoint on it
+6. Report the fixes that were applied to each page
 
 Validation and fixing are interleaved page-by-page (rather than fixing everything in a second pass after all pages are validated), so partial progress is preserved if the script is interrupted.
 
@@ -101,6 +102,7 @@ For each organization the script prints progress per page, then a summary listin
 ```
 [my-org] 1 page(s) with fixes applied / 42 pages
   FIXES APPLIED some-broken-page:
+    - Set displayMode to 'widget' for table-entities-explorer 'relatedTable' (was (missing))
     - Removed the id key from links in a links widget
   NO FIXES APPLIED another-page
 ```
