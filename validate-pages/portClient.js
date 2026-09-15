@@ -1,4 +1,5 @@
 const axios = require("axios");
+const { applyClientSidePageFixes } = require("./pageFixes");
 
 /**
  * Mirrors Python's KeyError so we can report a missing env/config key the same
@@ -117,9 +118,54 @@ async function collectFindings(apiUrl, org) {
   return { name, totalPages: pages.length, findings, failedPages };
 }
 
+async function getPage(apiUrl, headers, identifier) {
+  const res = await axios.get(`${apiUrl}/v1/pages/${identifier}`, { headers });
+  return res.data.page;
+}
+
+async function putPage(apiUrl, headers, identifier, page) {
+  await axios.put(`${apiUrl}/v1/pages/${identifier}`, page, { headers });
+}
+
 /**
- * Calls the fix endpoint for a single page and returns the list of errors it
- * fixed.
+ * Applies client-side page fixes (e.g. missing displayMode on table widgets
+ * inside dashboard widgets) and persists the page when changes are made.
+ *
+ * @param {string} apiUrl
+ * @param {Record<string, string>} headers
+ * @param {string} identifier
+ * @returns {Promise<Array<{name: string, message: string}>>}
+ */
+async function applyAndSaveClientSidePageFixes(apiUrl, headers, identifier) {
+  const page = await getPage(apiUrl, headers, identifier);
+  const fixedErrors = applyClientSidePageFixes(page);
+  if (fixedErrors.length === 0) {
+    return [];
+  }
+
+  await putPage(apiUrl, headers, identifier, page);
+  return fixedErrors;
+}
+
+/**
+ * Calls the Port API fix endpoint for a single page.
+ *
+ * @param {string} apiUrl
+ * @param {Record<string, string>} headers
+ * @param {string} identifier
+ * @returns {Promise<{ok: boolean, fixedErrors: Array<{name: string, message: string}>}>}
+ */
+async function callApiPageFix(apiUrl, headers, identifier) {
+  const res = await axios.post(
+    `${apiUrl}/v1/pages/${identifier}/fix`,
+    {},
+    { headers }
+  );
+  return res.data;
+}
+
+/**
+ * Applies client-side fixes and then calls the Port API fix endpoint.
  *
  * @param {string} apiUrl
  * @param {Record<string, string>} headers
@@ -127,12 +173,18 @@ async function collectFindings(apiUrl, org) {
  * @returns {Promise<{ok: boolean, fixedErrors: Array<{name: string, message: string}>}>}
  */
 async function fixPage(apiUrl, headers, identifier) {
-  const res = await axios.post(
-    `${apiUrl}/v1/pages/${identifier}/fix`,
-    {},
-    { headers }
+  const clientFixedErrors = await applyAndSaveClientSidePageFixes(
+    apiUrl,
+    headers,
+    identifier
   );
-  return res.data;
+  const apiResult = await callApiPageFix(apiUrl, headers, identifier);
+  const apiFixedErrors = apiResult.fixedErrors || [];
+
+  return {
+    ...apiResult,
+    fixedErrors: [...clientFixedErrors, ...apiFixedErrors],
+  };
 }
 
 /**
@@ -167,58 +219,109 @@ async function collectFixes(apiUrl, org) {
     (page) => !SKIP_PAGE_IDENTIFIERS.has(page.identifier)
   );
 
-  console.log(`Found ${pages.length} pages to validate`);
+  console.log(`Found ${pages.length} pages to validate and fix`);
   const fixes = [];
   const unexpectedFailures = [];
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i];
     const identifier = page.identifier;
 
-    console.log(`  [${i + 1}/${pages.length}] Validating ${identifier}`);
-    let errorsBefore;
+    console.log(`  [${i + 1}/${pages.length}] Checking ${identifier}`);
+    let clientFixedErrors = [];
+    try {
+      clientFixedErrors = await applyAndSaveClientSidePageFixes(
+        apiUrl,
+        headers,
+        identifier
+      );
+    } catch (error) {
+      const reason = error.response
+        ? `HTTP ${error.response.status}`
+        : error.message;
+      console.warn(
+        `  WARNING: failed to apply client-side fixes to ${identifier}: ${reason}`
+      );
+      unexpectedFailures.push({
+        identifier,
+        title: page.title,
+        reason,
+        stage: "fix",
+      });
+      continue;
+    }
+
+    let errorsBefore = [];
+    let pageIsValid = true;
     try {
       const validateRes = await axios.get(
         `${apiUrl}/v1/pages/${identifier}/validate`,
         { headers }
       );
       const result = validateRes.data;
-      if (result.valid ?? true) {
-        continue;
+      pageIsValid = result.valid ?? true;
+      if (!pageIsValid) {
+        errorsBefore = result.errors || [];
       }
-      errorsBefore = result.errors || [];
     } catch (error) {
       const reason = error.response
         ? `HTTP ${error.response.status}`
         : error.message;
       console.warn(`  WARNING: failed to validate ${identifier}: ${reason}`);
-      unexpectedFailures.push({ identifier, title: page.title, reason, stage: "validate" });
+      unexpectedFailures.push({
+        identifier,
+        title: page.title,
+        reason,
+        stage: "validate",
+      });
+      continue;
+    }
+
+    if (pageIsValid) {
+      if (clientFixedErrors.length > 0) {
+        fixes.push({
+          identifier,
+          title: page.title,
+          errorsBefore: [],
+          fixedErrors: clientFixedErrors,
+          fixesApplied: true,
+        });
+      }
       continue;
     }
 
     console.log(`  [${i + 1}/${pages.length}] Fixing ${identifier}`);
+    let apiFixedErrors = [];
     try {
-      const fixResult = await fixPage(apiUrl, headers, identifier);
-      const fixedErrors = fixResult.fixedErrors || [];
-      fixes.push({
-        identifier,
-        title: page.title,
-        errorsBefore,
-        fixedErrors,
-        // `fixedErrors` is a list of fix *operations*, not a 1:1 list of the
-        // original validation errors — a single operation (e.g. "remove id
-        // from links") can resolve multiple entries in `errorsBefore` at
-        // once. So we can only say whether at least one fix was applied
-        // (`fixesApplied`), not how many of the original errors were
-        // resolved or how many remain; that requires re-validating the page.
-        fixesApplied: fixedErrors.length > 0,
-      });
+      const fixResult = await callApiPageFix(apiUrl, headers, identifier);
+      apiFixedErrors = fixResult.fixedErrors || [];
     } catch (error) {
       const reason = error.response
         ? `HTTP ${error.response.status}`
         : error.message;
       console.warn(`  WARNING: failed to fix ${identifier}: ${reason}`);
-      unexpectedFailures.push({ identifier, title: page.title, reason, stage: "fix" });
+      unexpectedFailures.push({
+        identifier,
+        title: page.title,
+        reason,
+        stage: "fix",
+      });
+      continue;
     }
+
+    const fixedErrors = [...clientFixedErrors, ...apiFixedErrors];
+    fixes.push({
+      identifier,
+      title: page.title,
+      errorsBefore,
+      fixedErrors,
+      // `fixedErrors` is a list of fix *operations*, not a 1:1 list of the
+      // original validation errors — a single operation (e.g. "remove id
+      // from links") can resolve multiple entries in `errorsBefore` at
+      // once. So we can only say whether at least one fix was applied
+      // (`fixesApplied`), not how many of the original errors were
+      // resolved or how many remain; that requires re-validating the page.
+      fixesApplied: fixedErrors.length > 0,
+    });
   }
 
   const pagesWithFixesApplied = fixes.filter((fix) => fix.fixesApplied).length;
@@ -235,6 +338,10 @@ module.exports = {
   getApiUrl,
   parseOrgs,
   getToken,
+  getPage,
+  putPage,
+  applyAndSaveClientSidePageFixes,
+  callApiPageFix,
   collectFindings,
   fixPage,
   collectFixes,
