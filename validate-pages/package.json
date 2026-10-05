@@ -14,7 +14,7 @@
   "license": "ISC",
   "description": "Validate all pages across one or more Port organizations.",
   "dependencies": {
-    "axios": "^1.7.9",
+    "axios": "^1.20.0",
     "dotenv": "^16.4.5"
   }
 }
